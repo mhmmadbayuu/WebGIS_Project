@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebGIS Pengentasan Kemiskinan — Berbasis Masyarakat & Rumah Ibadah</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: rgba(30, 41, 59, 0.7); /* Glassmorphism base */
+      --surface-solid: #1e293b;
+      --surface2: rgba(51, 65, 85, 0.7);
+      --surface2-solid: #334155;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --accent2: #6366f1;
+      --green: #22c55e;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --orange: #f97316;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --border: rgba(255, 255, 255, 0.1);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background: var(--bg); 
+      color: var(--text); 
+      height: 100vh; 
+      overflow: hidden; 
+      display: flex; 
+      flex-direction: column; 
+    }
+
+    /* ---- HEADER ---- */
+    #header {
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 1000;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    #header .logo { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 16px; color: var(--text); display: flex; align-items: center; gap: 8px; letter-spacing: -0.5px; }
+    #header .logo span { background: linear-gradient(to right, #60a5fa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    #header .spacer { flex: 1; }
+    #header .nav-btn {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text2);
+      padding: 6px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #header .nav-btn:hover, #header .nav-btn.active { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.15); }
+    #notif-badge {
+      background: var(--red);
+      color: #fff;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 900;
+      padding: 1px 5px;
+      min-width: 16px;
+      display: none;
+    }
+    
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 4px 12px 4px 4px;
+      border-radius: 99px;
+      margin-left: 4px;
+      margin-right: 4px;
+    }
+    .ub-avatar {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .ub-info { display: flex; flex-direction: column; }
+    .ub-name { font-size: 11px; font-weight: 900; color: #fff; line-height: 1.2; text-transform: capitalize; }
+    .ub-role { font-size: 9px; color: var(--text2); text-transform: uppercase; font-weight: 700; line-height: 1.2; }
+
+    /* ---- LAYOUT ---- */
+    #main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ---- SIDEBAR ---- */
+    #sidebar {
+      width: 320px;
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width .4s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.1);
+    }
+    #sidebar.collapsed { width: 0; overflow: hidden; }
+
+    #sidebar-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .stab {
+      flex: 1;
+      padding: 10px 4px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text2);
+      border-bottom: 2px solid transparent;
+      transition: all .2s;
+    }
+    .stab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    #sidebar-content { flex: 1; overflow-y: auto; padding: 12px; }
+    #sidebar-content::-webkit-scrollbar { width: 4px; }
+    #sidebar-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Stats cards */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .stat-card {
+      background: var(--surface2);
+      border-radius: var(--radius);
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-card .val { font-size: 26px; font-weight: 900; }
+    .stat-card .lbl { font-size: 10px; color: var(--text2); font-weight: 700; margin-top: 2px; }
+    .stat-card.red .val { color: var(--red); }
+    .stat-card.yellow .val { color: var(--yellow); }
+    .stat-card.green .val { color: var(--green); }
+    .stat-card.blue .val { color: var(--accent); }
+
+    /* Legend */
+    .legend { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; backdrop-filter: blur(8px); }
+    .legend h4 { font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 800; color: #fff; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .sq  { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+    /* Layer toggles */
+    .layer-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text2);
+      user-select: none;
+      transition: all 0.2s;
+    }
+    .layer-toggle:hover { background: rgba(255,255,255,0.06); color: #fff; }
+    .layer-toggle input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+
+    /* Search */
+    .search-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      width: 100%;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+    .search-box:focus { outline: none; border-color: var(--accent); }
+    .search-box::placeholder { color: var(--text2); }
+
+    /* List items */
+    .list-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all .2s;
+      border-left: 4px solid transparent;
+    }
+    .list-item:hover { background: rgba(255,255,255,0.08); transform: translateX(4px); }
+    .list-item.miskin { border-left-color: var(--red); }
+    .list-item.rentan { border-left-color: var(--yellow); }
+    .list-item.mampu  { border-left-color: var(--green); }
+    .list-item .name { font-weight: 700; font-size: 13px; }
+    .list-item .sub  { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+    /* Tags */
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .tag.miskin  { background: rgba(239,68,68,.15); color: var(--red); }
+    .tag.rentan  { background: rgba(245,158,11,.15); color: var(--yellow); }
+    .tag.mampu   { background: rgba(34,197,94,.15);  color: var(--green); }
+    .tag.kritis  { background: rgba(239,68,68,.25);  color: #ff6b6b; }
+    .tag.darurat { background: rgba(239,68,68,.3);   color: var(--red); }
+    .tag.pending { background: rgba(245,158,11,.15); color: var(--yellow); }
+    .tag.selesai { background: rgba(34,197,94,.15);  color: var(--green); }
+    .tag.info    { background: rgba(59,130,246,.15); color: var(--accent); }
+
+    /* Filter buttons */
+    .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .filter-btn {
+      padding: 4px 10px;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      transition: all .2s;
+    }
+    .filter-btn.active, .filter-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ---- MAP ---- */
+    #map { flex: 1; z-index: 1; }
+
+    /* ---- MODAL ---- */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.7);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 620px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 60px rgba(0,0,0,.6);
+      border: 1px solid var(--border);
+      transform: scale(0.95);
+      animation: modalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    @keyframes modalIn { to { transform: scale(1); } }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-header h3 { font-size: 16px; font-weight: 900; }
+    .modal-close {
+      background: var(--surface2);
+      border: none;
+      color: var(--text2);
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .modal-body { padding: 20px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; }
+    input, select, textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+    .btn {
+      padding: 9px 18px;
+      border-radius: 9px;
+      border: none;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.2); filter: brightness(1.1); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-danger  { background: var(--red); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-sm { padding: 5px 10px; font-size: 11px; border-radius: 6px; }
+    .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 99999;
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+      max-width: 400px;
+      text-align: center;
+    }
+    #toast.show { opacity: 1; }
+    #toast.success { border-color: var(--green); color: var(--green); }
+    #toast.error   { border-color: var(--red); color: var(--red); }
+
+    /* Chat */
+    .chat-area {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    .chat-msg { margin-bottom: 8px; }
+    .chat-msg .sender { font-weight: 800; color: var(--accent); font-size: 11px; }
+    .chat-msg .bubble {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 6px 10px;
+      margin-top: 2px;
+      display: inline-block;
+      max-width: 90%;
+    }
+    .chat-msg.mine .bubble { background: rgba(59,130,246,.2); }
+    .chat-msg .time { font-size: 9px; color: var(--text2); margin-top: 2px; }
+
+    /* Priority card */
+    .priority-card {
+      background: linear-gradient(135deg, rgba(239,68,68,.15), rgba(239,68,68,.05));
+      border: 1px solid rgba(239,68,68,.3);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+    .priority-card h4 { font-size: 12px; font-weight: 900; color: var(--red); margin-bottom: 6px; }
+
+    /* Popup custom */
+    .leaflet-popup-content-wrapper {
+      background: var(--surface) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      color: var(--text) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 8px 30px rgba(0,0,0,.5) !important;
+    }
+    .leaflet-popup-tip { background: var(--surface-solid) !important; }
+    .leaflet-popup-content { min-width: 220px !important; }
+    .popup-title { font-weight: 900; font-size: 14px; margin-bottom: 6px; }
+    .popup-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+    .popup-row .lbl { color: var(--text2); }
+    .popup-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .popup-btn {
+      flex: 1;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .popup-btn.blue { background: var(--accent); color: #fff; }
+    .popup-btn.green { background: var(--green); color: #fff; }
+    .popup-btn.red { background: var(--red); color: #fff; }
+    .popup-btn.orange { background: var(--orange); color: #fff; }
+
+    /* Scroll indicator for list */
+    .empty-state { text-align: center; color: var(--text2); padding: 24px 0; font-size: 13px; }
+
+    /* Warning validasi */
+    .validasi-warning {
+      background: rgba(245,158,11,.1);
+      border: 1px solid rgba(245,158,11,.3);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--yellow);
+      margin-top: 8px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      #sidebar { width: 280px; position: absolute; z-index: 500; height: 100%; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== HEADER ==================== -->
+<div id="header">
+  <div class="logo"><i class="fa-solid fa-map-location-dot" style="color:var(--accent)"></i> <span>WebGIS</span> Pengentasan Kemiskinan</div>
+  <div class="spacer"></div>
+
+  <button class="nav-btn" onclick="window.location.href='../index.html'"><i class="fa-solid fa-house"></i> Landing Page</button>
+  <button class="nav-btn" onclick="openModal('modal-laporan')"><i class="fa-solid fa-triangle-exclamation"></i> Buat Laporan</button>
+  <button class="nav-btn" id="btn-login" onclick="window.location.href='admin/login.php'"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+  <button class="nav-btn" id="btn-admin" style="display:none" onclick="window.location.href='admin/index.php'"><i class="fa-solid fa-gauge"></i> Panel</button>
+  <button class="nav-btn" id="btn-tambah" style="display:none" onclick="openModal('modal-penduduk')"><i class="fa-solid fa-plus"></i> Tambah</button>
+  <button class="nav-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+  <div style="position:relative">
+    <button class="nav-btn" onclick="loadNotifikasi()" title="Notifikasi"><i class="fa-solid fa-bell"></i> <span id="notif-badge"></span></button>
+  </div>
+  
+  <div id="user-badge" class="user-badge" style="display:none">
+    <div class="ub-avatar"><i class="fa-solid fa-user"></i></div>
+    <div class="ub-info">
+      <div class="ub-name" id="ub-name">-</div>
+      <div class="ub-role" id="ub-role">-</div>
+    </div>
+  </div>
+  
+  <button class="nav-btn" id="btn-logout" style="display:none; background:var(--red); color:#fff; border-color:var(--red)" onclick="doLogout()"><i class="fa-solid fa-power-off"></i></button>
+</div>
+
+<!-- ==================== MAIN ==================== -->
+<div id="main">
+
+  <!-- ===== SIDEBAR ===== -->
+  <div id="sidebar">
+    <div id="sidebar-tabs">
+      <div class="stab active" onclick="switchTab('tab-peta')" data-tab="tab-peta"><i class="fa-solid fa-layer-group"></i><br>Layer</div>
+      <div class="stab" onclick="switchTab('tab-data')" data-tab="tab-data"><i class="fa-solid fa-users"></i><br>Data</div>
+      <div class="stab" onclick="switchTab('tab-stats')" data-tab="tab-stats"><i class="fa-solid fa-chart-bar"></i><br>Statistik</div>
+      <div class="stab" onclick="switchTab('tab-chat')" data-tab="tab-chat"><i class="fa-solid fa-comments"></i><br>Chat</div>
+    </div>
+
+    <div id="sidebar-content">
+
+      <!-- ===== TAB LAYER/PETA ===== -->
+      <div class="panel active" id="tab-peta">
+        <div class="legend">
+          <h4>🎨 Legenda Status Ekonomi</h4>
+          <div class="legend-item"><div class="dot" style="background:#ef4444"></div> Miskin</div>
+          <div class="legend-item"><div class="dot" style="background:#f59e0b"></div> Rentan Miskin</div>
+          <div class="legend-item"><div class="dot" style="background:#22c55e"></div> Mampu</div>
+          <div class="legend-item"><div class="dot" style="background:#dc2626;border:2px solid #fff"></div> Laporan Darurat</div>
+          <div class="legend-item"><div class="sq"  style="background:rgba(59,130,246,.2);border:2px solid var(--accent)"></div> Area Jangkauan RI</div>
+        </div>
+
+        <h4 style="font-size:11px;font-weight:900;color:var(--text2);text-transform:uppercase;margin-bottom:8px">Layer Peta</h4>
+        <label class="layer-toggle"><input type="checkbox" id="layer-penduduk" checked onchange="toggleLayer('penduduk')"> <i class="fa-solid fa-person" style="color:#94a3b8;width:16px"></i> Sebaran Penduduk</label>
+        <label class="layer-toggle"><input type="checkbox" id="layer-keluarga" onchange="toggleLayer('keluarga')"> <i class="fa-solid fa-house-chimney-user" style="color:#94a3b8;width:16px"></i> Lokasi Keluarga (KK)</label>
+        <label class="layer-toggle"><input type="checkbox" id="layer-rumah-ibadah" checked onchange="toggleLayer('rumah-ibadah')"> <i class="fa-solid fa-mosque" style="color:#94a3b8;width:16px"></i> Rumah Ibadah + Radius</label>
+        <label class="layer-toggle"><input type="checkbox" id="layer-laporan" checked onchange="toggleLayer('laporan')"> <i class="fa-solid fa-triangle-exclamation" style="color:#94a3b8;width:16px"></i> Laporan Masyarakat</label>
+        <label class="layer-toggle"><input type="checkbox" id="layer-jalan" onchange="toggleLayer('jalan')"> <i class="fa-solid fa-road" style="color:#94a3b8;width:16px"></i> Jaringan Jalan</label>
+        <label class="layer-toggle"><input type="checkbox" id="layer-heatmap" onchange="toggleLayer('heatmap')"> <i class="fa-solid fa-fire" style="color:#ef4444;width:16px"></i> Heatmap Kemiskinan</label>
+
+        <div style="margin-top:12px">
+          <h4 style="font-size:11px;font-weight:900;color:var(--text2);text-transform:uppercase;margin-bottom:8px">Filter Ekonomi</h4>
+          <div class="filter-row">
+            <button class="filter-btn active" onclick="filterEkonomi('semua', this)">Semua</button>
+            <button class="filter-btn" onclick="filterEkonomi('miskin', this)" style="color:var(--red)">Miskin</button>
+            <button class="filter-btn" onclick="filterEkonomi('rentan', this)" style="color:var(--yellow)">Rentan</button>
+            <button class="filter-btn" onclick="filterEkonomi('mampu', this)" style="color:var(--green)">Mampu</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <h4 style="font-size:11px;font-weight:900;color:var(--text2);text-transform:uppercase;margin-bottom:8px">🚨 Belum Pernah Dibantu</h4>
+          <div id="belum-dibantu-list"></div>
+        </div>
+      </div>
+
+      <!-- ===== TAB DATA ===== -->
+      <div class="panel" id="tab-data">
+        <input class="search-box" type="text" placeholder="🔍 Cari nama / NIK..." id="search-input" oninput="filterList()">
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="filterData('semua', this)">Semua</button>
+          <button class="filter-btn" onclick="filterData('miskin', this)">Miskin</button>
+          <button class="filter-btn" onclick="filterData('rentan', this)">Rentan</button>
+          <button class="filter-btn" onclick="filterData('kritis', this)">🔥 Kritis</button>
+        </div>
+        <div id="data-list"><div class="empty-state">Memuat data...</div></div>
+      </div>
+
+      <!-- ===== TAB STATISTIK ===== -->
+      <div class="panel" id="tab-stats">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card red"><div class="val" id="s-miskin">—</div><div class="lbl">Miskin</div></div>
+          <div class="stat-card yellow"><div class="val" id="s-rentan">—</div><div class="lbl">Rentan</div></div>
+          <div class="stat-card green"><div class="val" id="s-dibantu">—</div><div class="lbl">Bantuan Bulan Ini</div></div>
+          <div class="stat-card blue"><div class="val" id="s-laporan">—</div><div class="lbl">Laporan Pending</div></div>
+        </div>
+        <div class="priority-card" id="priority-card">
+          <h4>🔥 Warga Belum Pernah Dibantu</h4>
+          <div id="s-belum-dibantu" style="font-size:22px;font-weight:900;color:var(--red)">—</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">jiwa miskin/rentan belum tersentuh bantuan</div>
+          <button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="switchTab('tab-data'); filterData('kritis', document.querySelector('.filter-btn'))">Lihat Daftar →</button>
+          <button class="btn btn-primary btn-sm" style="margin-top:8px; background:var(--accent2); width:100%" onclick="zoomToBlindSpots()"><i class="fa-solid fa-magnifying-glass"></i> Cari Titik Blind Spot</button>
+        </div>
+        <div id="chart-container" style="background:var(--surface2);border-radius:var(--radius);padding:12px">
+          <h4 style="font-size:11px;font-weight:900;color:var(--text2);margin-bottom:8px">SEBARAN STATUS EKONOMI</h4>
+          <canvas id="chartEkonomi" height="160"></canvas>
+        </div>
+      </div>
+
+      <!-- ===== TAB CHAT ===== -->
+      <div class="panel" id="tab-chat">
+        <div style="font-size:11px;font-weight:900;color:var(--text2);margin-bottom:8px">DISKUSI PENGURUS RUMAH IBADAH</div>
+        <select id="chat-room" class="search-box" style="margin-bottom:8px" onchange="loadChat()">
+          <option value="">— Pilih Rumah Ibadah —</option>
+        </select>
+        <div class="chat-area" id="chat-area">
+          <div class="empty-state">Pilih rumah ibadah untuk mulai chat</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <input id="chat-input" class="search-box" style="margin:0;flex:1" placeholder="Ketik pesan..." onkeydown="if(event.key==='Enter') sendChat()">
+          <button class="btn btn-primary btn-sm" onclick="sendChat()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+        <div id="chat-login-notice" style="margin-top:8px;font-size:11px;color:var(--text2)">⚠️ Chat hanya tersedia untuk pengurus yang login.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== MAP ===== -->
+  <div id="map"></div>
+</div>
+
+<!-- ==================== MODAL LAPORAN ==================== -->
+<div class="modal-overlay" id="modal-laporan">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🚨 Laporkan Kondisi Darurat</h3>
+      <button class="modal-close" onclick="closeModal('modal-laporan')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Siapapun bisa melaporkan kondisi tetangga yang membutuhkan bantuan. Identitas pelapor bersifat opsional.</p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nama Pelapor (opsional)</label>
+          <input id="lap-nama" placeholder="Boleh kosong / anonim">
+        </div>
+        <div class="form-group">
+          <label>NIK Warga Terdampak (opsional)</label>
+          <input id="lap-nik" placeholder="16 digit NIK">
+        </div>
+        <div class="form-group">
+          <label>Kategori</label>
+          <select id="lap-kategori">
+            <option value="darurat_pangan">🍚 Darurat Pangan</option>
+            <option value="darurat_kesehatan">🏥 Darurat Kesehatan</option>
+            <option value="darurat_ekonomi">💸 Darurat Ekonomi</option>
+            <option value="butuh_bantuan_lain">🆘 Butuh Bantuan Lain</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tingkat Urgensi</label>
+          <select id="lap-urgensi">
+            <option value="sedang">🟡 Sedang</option>
+            <option value="tinggi">🟠 Tinggi</option>
+            <option value="darurat">🔴 DARURAT</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Deskripsi Kondisi *</label>
+          <textarea id="lap-deskripsi" placeholder="Ceritakan kondisi yang terjadi secara detail..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label>Alamat Lokasi</label>
+          <input id="lap-alamat" placeholder="Alamat lengkap atau klik peta untuk koordinat">
+        </div>
+        <div class="form-group">
+          <label>Latitude</label>
+          <input id="lap-lat" placeholder="Klik peta untuk isi otomatis">
+        </div>
+        <div class="form-group">
+          <label>Longitude</label>
+          <input id="lap-lng" placeholder="Klik peta untuk isi otomatis">
+        </div>
+      </div>
+      <div id="lap-validasi-warn" class="validasi-warning" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-laporan')">Batal</button>
+      <button class="btn btn-danger" onclick="submitLaporan()"><i class="fa-solid fa-paper-plane"></i> Kirim Laporan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL PENDUDUK (CRUD) ==================== -->
+<div class="modal-overlay" id="modal-penduduk">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-pddk-title">👤 Tambah Penduduk</h3>
+      <button class="modal-close" onclick="closeModal('modal-penduduk')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pddk-nik-edit">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>NIK (16 digit) *</label>
+          <input id="pddk-nik" maxlength="16" placeholder="1234567890123456">
+        </div>
+        <div class="form-group">
+          <label>No. KK (opsional)</label>
+          <input id="pddk-nokk" maxlength="16" placeholder="Isi No KK jika sudah ada">
+        </div>
+        <div class="form-group full">
+          <label>Nama Lengkap *</label>
+          <input id="pddk-nama" placeholder="Nama sesuai KTP">
+        </div>
+        <div class="form-group">
+          <label>Jenis Kelamin *</label>
+          <select id="pddk-jk">
+            <option value="L">Laki-laki</option>
+            <option value="P">Perempuan</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tanggal Lahir *</label>
+          <input type="date" id="pddk-tgl" onchange="hitungUmur()">
+        </div>
+        <div class="form-group">
+          <label>Umur (otomatis)</label>
+          <input id="pddk-umur" readonly placeholder="Dihitung otomatis" style="background:var(--bg)">
+        </div>
+        <div class="form-group">
+          <label>Status dalam Keluarga</label>
+          <select id="pddk-sk">
+            <option value="kepala_keluarga">Kepala Keluarga</option>
+            <option value="istri">Istri</option>
+            <option value="anak">Anak</option>
+            <option value="menantu">Menantu</option>
+            <option value="cucu">Cucu</option>
+            <option value="orang_tua">Orang Tua</option>
+            <option value="anggota_lain">Anggota Lain</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status Perkawinan</label>
+          <select id="pddk-sp">
+            <option value="belum_kawin">Belum Kawin</option>
+            <option value="kawin">Kawin</option>
+            <option value="cerai_hidup">Cerai Hidup</option>
+            <option value="cerai_mati">Cerai Mati</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Pendidikan Terakhir</label>
+          <select id="pddk-ptk" onchange="cekValidasiPendidikan()">
+            <option value="tidak_sekolah">Tidak Sekolah</option>
+            <option value="SD">SD</option>
+            <option value="SMP">SMP</option>
+            <option value="SMA">SMA</option>
+            <option value="SMK">SMK</option>
+            <option value="D3">D3</option>
+            <option value="S1">S1</option>
+            <option value="S2">S2</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status Pendidikan</label>
+          <select id="pddk-spd" onchange="cekValidasiPendidikan()">
+            <option value="sekolah">Masih Sekolah</option>
+            <option value="tidak_sekolah">Tidak Sekolah</option>
+            <option value="lulus">Lulus</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status Ekonomi</label>
+          <select id="pddk-se">
+            <option value="miskin">Miskin</option>
+            <option value="rentan">Rentan</option>
+            <option value="mampu">Mampu</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Kondisi Kesehatan</label>
+          <select id="pddk-kkh">
+            <option value="sehat">Sehat</option>
+            <option value="sakit_ringan">Sakit Ringan</option>
+            <option value="sakit_parah">Sakit Parah</option>
+            <option value="disabilitas">Disabilitas</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Pekerjaan</label>
+          <input id="pddk-pkr" placeholder="Pekerjaan saat ini">
+        </div>
+        <div class="form-group">
+          <label>Penghasilan / Bulan (Rp)</label>
+          <input type="number" id="pddk-pgn" placeholder="0">
+        </div>
+        <div class="form-group full">
+          <label>Alamat</label>
+          <input id="pddk-almt" placeholder="Alamat lengkap">
+        </div>
+        <div class="form-group">
+          <label>Latitude</label>
+          <input id="pddk-lat" placeholder="Klik peta untuk isi">
+        </div>
+        <div class="form-group">
+          <label>Longitude</label>
+          <input id="pddk-lng" placeholder="Klik peta untuk isi">
+        </div>
+      </div>
+      <div id="pddk-validasi-warn" class="validasi-warning" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-penduduk')">Batal</button>
+      <button class="btn btn-primary" onclick="simpanPenduduk()"><i class="fa-solid fa-floppy-disk"></i> Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL DETAIL PENDUDUK ==================== -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <h3 id="detail-title">Detail Penduduk</h3>
+      <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
+    </div>
+    <div class="modal-body" id="detail-body">Memuat...</div>
+    <div class="modal-footer" id="detail-footer"></div>
+  </div>
+</div>
+
+<!-- ==================== MODAL BANTUAN ==================== -->
+<div class="modal-overlay" id="modal-bantuan">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🎁 Catat Penyaluran Bantuan</h3>
+      <button class="modal-close" onclick="closeModal('modal-bantuan')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ban-nik">
+      <div id="ban-target" style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px"></div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Jenis Bantuan *</label>
+          <select id="ban-jenis"></select>
+        </div>
+        <div class="form-group">
+          <label>Tanggal Penyaluran *</label>
+          <input type="date" id="ban-tgl">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="ban-status">
+            <option value="dijadwalkan">Dijadwalkan</option>
+            <option value="disalurkan" selected>Disalurkan</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Jumlah / Keterangan</label>
+          <input id="ban-jumlah" placeholder="mis: 1 karung beras">
+        </div>
+        <div class="form-group">
+          <label>Nilai (Rp)</label>
+          <input type="number" id="ban-rp" placeholder="0">
+        </div>
+        <div class="form-group full">
+          <label>Catatan</label>
+          <input id="ban-catatan" placeholder="Opsional">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-bantuan')">Batal</button>
+      <button class="btn btn-success" onclick="simpanBantuan()"><i class="fa-solid fa-check"></i> Simpan Bantuan</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ==================== SCRIPTS ==================== -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+<script src="https://unpkg.com/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+// ===== CONFIG =====
+const API_BASE = 'php/api/';
+const INIT_CENTER = [-0.0263, 109.3425];
+const INIT_ZOOM   = 13;
+
+// ===== MAP =====
+const map = L.map('map', { zoomControl: false }).setView(INIT_CENTER, INIT_ZOOM);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+const baseTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 20,
+  attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+// ===== LAYER GROUPS =====
+const layers = {
+  penduduk:    L.markerClusterGroup({ chunkedLoading: true }),
+  keluarga:    L.layerGroup(),
+  'rumah-ibadah': L.layerGroup(),
+  laporan:     L.layerGroup(),
+  jalan:       L.layerGroup(),
+  heatmap:     null, // diinisialisasi dinamis
+};
+layers.penduduk.addTo(map);
+layers['rumah-ibadah'].addTo(map);
+layers.laporan.addTo(map);
+
+// ===== STATE =====
+const state = {
+  pendudukData: [],
+  laporanData: [],
+  riData: [],
+  currentUser: null,
+  pickedLat: null,
+  pickedLng: null,
+  editNik: null,
+};
+
+// ===== MAP CLICK untuk koordinat =====
+map.on('click', e => {
+  const { lat, lng } = e.latlng;
+  state.pickedLat = lat.toFixed(7);
+  state.pickedLng = lng.toFixed(7);
+
+  // Isi field yang aktif di modal laporan
+  if (document.getElementById('modal-laporan').classList.contains('open')) {
+    document.getElementById('lap-lat').value = state.pickedLat;
+    document.getElementById('lap-lng').value = state.pickedLng;
+    showToast('📍 Koordinat dipilih dari peta', 'success');
+  }
+  if (document.getElementById('modal-penduduk').classList.contains('open')) {
+    document.getElementById('pddk-lat').value = state.pickedLat;
+    document.getElementById('pddk-lng').value = state.pickedLng;
+    showToast('📍 Koordinat dipilih dari peta', 'success');
+  }
+});
+
+// ===== TOAST =====
+function showToast(msg, type = 'info', duration = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  setTimeout(() => t.className = '', duration);
+}
+
+// ===== MODAL =====
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'modal-laporan' && state.currentUser) {
+    const input = document.getElementById('lap-nama');
+    input.value = state.currentUser.nama;
+    input.readOnly = true;
+    input.style.background = 'var(--surface-solid)';
+    input.style.opacity = '0.7';
+  }
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ===== SIDEBAR =====
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+function switchTab(id) {
+  document.querySelectorAll('.stab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`[data-tab="${id}"]`).classList.add('active');
+  document.getElementById(id).classList.add('active');
+  if (id === 'tab-stats') loadStats();
+  if (id === 'tab-chat') loadChatRooms();
+}
+
+// ===== TOGGLE LAYER =====
+function toggleLayer(name) {
+  const cb = document.getElementById('layer-' + name);
+  if (cb.checked) {
+      if (layers[name]) map.addLayer(layers[name]);
+  } else {
+      if (layers[name]) map.removeLayer(layers[name]);
+  }
+}
+
+// ===== ZOOM TO BLIND SPOTS =====
+function zoomToBlindSpots() {
+  const blindSpots = state.pendudukData.filter(p => p.is_blind_spot && hitungSkorKerentanan(p) >= 70);
+  if (blindSpots.length === 0) {
+      showToast('Tidak ada area Blind Spot Darurat', 'success');
+      return;
+  }
+  const bounds = L.latLngBounds(blindSpots.map(p => [parseFloat(p.latitude), parseFloat(p.longitude)]));
+  map.fitBounds(bounds, { padding: [50, 50] });
+  switchTab('tab-peta');
+}
+
+// ===== UPDATE KOORDINAT VIA MAP DRAG =====
+async function updateKoordinatApi(type, id, lat, lng, marker, oldPos, skipConfirm = false) {
+  if (!skipConfirm) {
+    const result = await Swal.fire({
+      title: 'Update Koordinat?',
+      text: "Simpan posisi baru ini ke database?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Simpan',
+      cancelButtonText: 'Batal',
+      background: 'var(--surface-solid)',
+      color: 'var(--text)'
+    });
+
+    if (!result.isConfirmed) {
+      if (marker) marker.setLatLng(oldPos);
+      return;
+    }
+  }
+
+  try {
+    let url = '';
+    if (type === 'penduduk') url = `${API_BASE}penduduk.php?action=update&nik=${id}`;
+    else if (type === 'keluarga') url = `${API_BASE}keluarga.php?action=update_koordinat&id=${id}`;
+    else if (type === 'rumah_ibadah') url = `${API_BASE}rumah_ibadah.php?action=update_koordinat&id=${id}`;
+    else if (type === 'laporan') url = `${API_BASE}laporan.php?action=update_koordinat&id=${id}`;
+
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude: lat, longitude: lng })
+    });
+    const json = await res.json();
+    if (json.success) {
+      Swal.fire({ title: 'Berhasil', text: 'Koordinat diperbarui', icon: 'success', toast: true, position: 'bottom-end', showConfirmButton: false, timer: 3000, background: 'var(--surface-solid)', color: 'var(--text)' });
+      
+      // Auto reload data agar realtime
+      if (type === 'penduduk') loadPenduduk();
+      else if (type === 'keluarga') loadKeluarga();
+      else if (type === 'rumah_ibadah') loadRumahIbadah();
+      else if (type === 'laporan') loadLaporan();
+      loadStats();
+    } else {
+      Swal.fire({ title: 'Gagal', text: json.message, icon: 'error', background: 'var(--surface-solid)', color: 'var(--text)' });
+      if (marker && !skipConfirm) marker.setLatLng(oldPos);
+    }
+  } catch (e) {
+    Swal.fire({ title: 'Error', text: 'Terjadi kesalahan jaringan', icon: 'error', background: 'var(--surface-solid)', color: 'var(--text)' });
+    if (marker && !skipConfirm) marker.setLatLng(oldPos);
+  }
+}
+
+// ===== LOAD PENDUDUK =====
+async function loadPenduduk(filter = '') {
+  try {
+    const url = API_BASE + 'penduduk.php?action=list' + (filter ? `&status_ekonomi=${filter}` : '');
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!json.success) return;
+
+    state.pendudukData = json.data;
+    layers.penduduk.clearLayers();
+
+    json.data.forEach(p => {
+      if (!p.latitude || !p.longitude) return;
+      
+      // Hitung Skor Kerentanan & Radius
+      const skor = hitungSkorKerentanan(p);
+      const rData = cekRadius(p.latitude, p.longitude);
+      
+      p.skor = skor;
+      p.is_blind_spot = !rData.isInside;
+      p.rekomendasi = skor >= 70 ? 'BLT / Medis Darurat' : (skor >= 40 ? 'Bantuan Sembako' : 'Pemberdayaan');
+      
+      let color;
+      if (rData.isInside) {
+          color = '#f97316'; // Oranye = Terjangkau Radius Masjid
+      } else {
+          if (skor >= 70) color = '#ef4444'; // Merah = Blind Spot Sangat Rentan
+          else color = '#a855f7'; // Ungu = Blind Spot Biasa
+      }
+
+      const borderColor = p.kondisi_kesehatan === 'sakit_parah' ? '#fff' : color;
+
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid ${borderColor};box-shadow:0 0 6px ${color}66"></div>`,
+        iconSize: [12, 12], iconAnchor: [6, 6]
+      });
+
+      const isDraggable = state.currentUser && ['admin', 'pengurus'].includes(state.currentUser.role);
+      const marker = L.marker([parseFloat(p.latitude), parseFloat(p.longitude)], { icon, draggable: isDraggable });
+      if (isDraggable) {
+        marker.on('dragend', function(e) {
+          const newPos = e.target.getLatLng();
+          updateKoordinatApi('penduduk', p.nik, newPos.lat, newPos.lng, marker, [parseFloat(p.latitude), parseFloat(p.longitude)]);
+        });
+      }
+      marker.bindPopup(buildPendudukPopup(p, rData));
+      layers.penduduk.addLayer(marker);
+    });
+
+    // Render Heatmap
+    if (layers.heatmap && map.hasLayer(layers.heatmap)) {
+        map.removeLayer(layers.heatmap);
+    }
+    const heatData = json.data.map(p => {
+        if (!p.latitude || !p.longitude) return null;
+        return [parseFloat(p.latitude), parseFloat(p.longitude), hitungSkorKerentanan(p) / 100];
+    }).filter(x => x);
+    layers.heatmap = L.heatLayer(heatData, { radius: 25, blur: 15, maxZoom: 15 });
+    if (document.getElementById('layer-heatmap').checked) {
+        layers.heatmap.addTo(map);
+    }
+
+    renderDataList(json.data);
+    renderBelumDibantu(json.data);
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal memuat data penduduk', 'error');
+  }
+}
+
+function buildPendudukPopup(p, rData) {
+  const isLogin = !!state.currentUser;
+  return `
+    <div>
+      <div class="popup-title">${p.nama_lengkap} <span style="font-size:12px;color:var(--text2)">(${p.skor} Poin)</span></div>
+      ${p.is_blind_spot ? `<div style="background:#ef444422;color:#ef4444;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:800;margin-bottom:8px;display:flex;gap:4px"><i class="fa-solid fa-triangle-exclamation"></i> BLIND SPOT (Di Luar Jangkauan)</div>` 
+                        : `<div style="background:#f9731622;color:#f97316;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:800;margin-bottom:8px;display:flex;gap:4px"><i class="fa-solid fa-check-circle"></i> Terjangkau (${rData.ri ? rData.ri.nama : ''})</div>`}
+      <div class="popup-row"><span class="lbl">NIK</span><span>${p.nik}</span></div>
+      <div class="popup-row"><span class="lbl">Kerentanan</span><span class="tag ${p.skor >= 70 ? 'kritis' : (p.skor >= 40 ? 'rentan' : 'mampu')}">${p.skor >= 70 ? 'Sangat Rentan' : (p.skor >= 40 ? 'Rentan' : 'Cukup')}</span></div>
+      <div class="popup-row"><span class="lbl">Rekomendasi</span><span>${p.rekomendasi}</span></div>
+      <div class="popup-row"><span class="lbl">Dibantu</span><span>${p.jumlah_bantuan_diterima}x ${p.jumlah_bantuan_diterima == 0 ? '⚠️' : '✅'}</span></div>
+      <div class="popup-actions" style="display:flex; gap:5px;">
+        <button class="popup-btn blue" style="flex:1" onclick="lihatDetail('${p.nik}')">Detail</button>
+        ${isLogin && ['admin', 'pengurus'].includes(state.currentUser.role) ? `
+          <button class="popup-btn green" style="flex:1" onclick="bukaModalBantuan('${p.nik}', '${p.nama_lengkap}')">Bantu</button>
+          <button class="popup-btn" style="flex:1; background:var(--accent); color:#fff; border:none;" onclick="mulaiEditLokasi('penduduk', '${p.nik}', ${p.latitude || 'null'}, ${p.longitude || 'null'})">📍 Pindah</button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// ===== SKOR KERENTANAN & RADIUS =====
+function hitungSkorKerentanan(p) {
+    let skor = 0;
+    const penghasilan = parseFloat(p.penghasilan) || 0;
+    if (penghasilan < 500000) skor += 50;
+    else if (penghasilan <= 1500000) skor += 30;
+    else skor += 10;
+    
+    if (p.status_ekonomi === 'miskin') skor += 30;
+    else if (p.status_ekonomi === 'rentan') skor += 15;
+    
+    if (p.kondisi_kesehatan === 'sakit_parah') skor += 20;
+    else if (p.kondisi_kesehatan === 'disabilitas') skor += 15;
+    else if (p.kondisi_kesehatan === 'sakit_ringan') skor += 10;
+    
+    return skor;
+}
+
+function cekRadius(lat, lng) {
+    if (!state.riData || state.riData.length === 0) return { isInside: false, ri: null, distance: Infinity };
+    let closestRi = null;
+    let minDistance = Infinity;
+    const pLatLng = L.latLng(lat, lng);
+    
+    for (const ri of state.riData) {
+        if (!ri.latitude || !ri.longitude) continue;
+        const riLatLng = L.latLng(parseFloat(ri.latitude), parseFloat(ri.longitude));
+        const distance = pLatLng.distanceTo(riLatLng);
+        if (distance < minDistance) {
+            minDistance = distance;
+            closestRi = ri;
+        }
+    }
+    
+    if (closestRi && minDistance <= parseFloat(closestRi.radius_meter)) {
+        return { isInside: true, ri: closestRi, distance: minDistance };
+    }
+    return { isInside: false, ri: closestRi, distance: minDistance };
+}
+
+// ===== LOAD RUMAH IBADAH =====
+async function loadRumahIbadah() {
+  try {
+    const res  = await fetch('php/api/rumah_ibadah.php?action=list');
+    const json = await res.json();
+    if (!json.success) return;
+    state.riData = json.data;
+    layers['rumah-ibadah'].clearLayers();
+
+    json.data.forEach(ri => {
+      // Radius circle
+      const circle = L.circle([parseFloat(ri.latitude), parseFloat(ri.longitude)], {
+        radius: parseFloat(ri.radius_meter) || 300,
+        color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.08, weight: 1.5,
+      }).addTo(layers['rumah-ibadah']);
+
+      // Icon
+      const emoji = { 'Masjid': '🕌', 'Musholla': '🕌', 'Gereja Protestan': '⛪', 'Gereja Katolik': '⛪', 'Pura': '🛕', 'Vihara': '⛩️' };
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">${emoji[ri.jenis] || '🏛️'}</div>`,
+        iconSize: [28, 28], iconAnchor: [14, 14]
+      });
+
+      const isDraggable = state.currentUser && ['admin', 'pengurus'].includes(state.currentUser.role);
+      const marker = L.marker([parseFloat(ri.latitude), parseFloat(ri.longitude)], { icon, draggable: isDraggable });
+      if (isDraggable) {
+        marker.on('dragend', function(e) {
+          const newPos = e.target.getLatLng();
+          updateKoordinatApi('rumah_ibadah', ri.id, newPos.lat, newPos.lng, marker, [parseFloat(ri.latitude), parseFloat(ri.longitude)]);
+        });
+      }
+      marker.bindPopup(`
+          <div>
+            <div class="popup-title">${ri.nama}</div>
+            <div class="popup-row"><span class="lbl">Jenis</span><span>${ri.jenis}</span></div>
+            <div class="popup-row"><span class="lbl">Radius</span><span>${ri.radius_meter}m</span></div>
+            ${ri.kontak ? `<div class="popup-row"><span class="lbl">Kontak</span><span>${ri.kontak}</span></div>` : ''}
+            ${ri.alamat ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">${ri.alamat}</div>` : ''}
+            ${(state.currentUser && ['admin', 'pengurus'].includes(state.currentUser.role)) ? 
+              `<div style="margin-top:10px; display:flex; gap:5px;">
+                 <button class="btn btn-secondary btn-sm" style="flex:1" onclick="window.location.href='admin/rumah_ibadah.php?edit=${ri.id}'">✏️ Edit Data</button>
+                 <button class="btn btn-secondary btn-sm" style="flex:1; background:var(--accent); color:#fff; border-color:var(--accent)" onclick="mulaiEditLokasi('rumah_ibadah', '${ri.id}', ${ri.latitude}, ${ri.longitude})">📍 Edit Lokasi</button>
+               </div>` : ''}
+          </div>
+        `)
+        .addTo(layers['rumah-ibadah']);
+    });
+
+    // Isi select chat room
+    const sel = document.getElementById('chat-room');
+    json.data.forEach(ri => {
+      const opt = document.createElement('option');
+      opt.value = ri.id;
+      opt.textContent = `${emoji[ri.jenis] || '🏛️'} ${ri.nama}`;
+      sel.appendChild(opt);
+    });
+  } catch (e) { console.error(e); }
+}
+
+// ===== LOAD KELUARGA =====
+async function loadKeluarga() {
+  try {
+    const res  = await fetch(API_BASE + 'keluarga.php?action=geojson');
+    const geojson = await res.json();
+    layers.keluarga.clearLayers();
+
+    geojson.features.forEach(f => {
+      const p = f.properties;
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="font-size:16px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))">🏠</div>`,
+        iconSize: [20, 20], iconAnchor: [10, 10]
+      });
+      const isDraggable = state.currentUser && ['admin', 'pengurus'].includes(state.currentUser.role);
+      const marker = L.marker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { icon, draggable: isDraggable });
+      if (isDraggable) {
+        marker.on('dragend', function(e) {
+          const newPos = e.target.getLatLng();
+          updateKoordinatApi('keluarga', p.id, newPos.lat, newPos.lng, marker, [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+        });
+      }
+      marker.bindPopup(`
+          <div>
+            <div class="popup-title">KK: ${p.nama_kk}</div>
+            <div class="popup-row"><span class="lbl">No. KK</span><span>${p.no_kk}</span></div>
+            <div class="popup-row"><span class="lbl">Status</span><span class="tag ${p.status_ekonomi}">${p.status_ekonomi}</span></div>
+            <div class="popup-row"><span class="lbl">Anggota</span><span>${p.jml_anggota} jiwa</span></div>
+            ${p.nama_ri ? `<div class="popup-row"><span class="lbl">Rumah Ibadah</span><span>${p.nama_ri}</span></div>` : ''}
+            ${(state.currentUser && ['admin', 'pengurus'].includes(state.currentUser.role)) ? 
+              `<div style="margin-top:10px; display:flex; gap:5px;">
+                 <button class="btn btn-secondary btn-sm" style="flex:1" onclick="window.location.href='admin/keluarga.php?edit=${p.id}'">✏️ Edit Data</button>
+                 <button class="btn btn-secondary btn-sm" style="flex:1; background:var(--accent); color:#fff; border-color:var(--accent)" onclick="mulaiEditLokasi('keluarga', '${p.id}', ${f.geometry.coordinates[1]}, ${f.geometry.coordinates[0]})">📍 Edit Lokasi</button>
+               </div>` : ''}
+          </div>
+        `)
+        .addTo(layers.keluarga);
+    });
+  } catch (e) { console.error(e); }
+}
+
+// ===== LOAD LAPORAN =====
+async function loadLaporan() {
+  try {
+    const res  = await fetch(API_BASE + 'laporan.php?action=geojson');
+    const geojson = await res.json();
+    layers.laporan.clearLayers();
+
+    geojson.features.forEach(f => {
+      const p = f.properties;
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:14px;height:14px;transform:rotate(45deg);background:${p.color};border:2px solid #fff;box-shadow:0 0 8px ${p.color}"></div>`,
+        iconSize: [14, 14], iconAnchor: [7, 7]
+      });
+      L.marker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { icon })
+        .bindPopup(`
+          <div>
+            <div class="popup-title">⚠️ Laporan ${p.tingkat_urgensi.toUpperCase()}</div>
+            <div class="popup-row"><span class="lbl">Kategori</span><span>${p.kategori.replace(/_/g,' ')}</span></div>
+            <div class="popup-row"><span class="lbl">Pelapor</span><span>${p.nama_pelapor ? p.nama_pelapor : 'Anonim'}${p.pelapor_id ? ' ✅' : ''}</span></div>
+            <div class="popup-row"><span class="lbl">Status</span><span class="tag ${p.status}">${p.status}</span></div>
+            ${p.alamat ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">${p.alamat}</div>` : ''}
+            <div style="font-size:10px;color:var(--text2);margin-top:4px">${new Date(p.created_at).toLocaleDateString('id')}</div>
+            ${(state.currentUser && ['admin', 'pengurus'].includes(state.currentUser.role)) ? 
+              `<div style="margin-top:10px; display:flex; gap:5px;">
+                 <button class="btn btn-secondary btn-sm" style="flex:1" onclick="window.location.href='admin/laporan.php'">Manajemen</button>
+                 <button class="btn btn-secondary btn-sm" style="flex:1; background:var(--accent); color:#fff; border-color:var(--accent)" onclick="mulaiEditLokasi('laporan', '${p.id}', ${f.geometry.coordinates[1]}, ${f.geometry.coordinates[0]})">📍 Edit Lokasi</button>
+               </div>` : ''}
+          </div>
+        `)
+        .addTo(layers.laporan);
+    });
+  } catch (e) { console.error(e); }
+}
+
+// ===== RENDER DATA LIST =====
+function renderDataList(data) {
+  const el = document.getElementById('data-list');
+  if (!data.length) {
+    el.innerHTML = '<div class="empty-state">Tidak ada data</div>';
+    return;
+  }
+  el.innerHTML = data.map(p => `
+    <div class="list-item ${p.status_ekonomi}" onclick="flyToAndOpen('${p.nik}', ${p.latitude}, ${p.longitude})">
+      <div class="name">${p.nama_lengkap} <span class="tag ${p.status_ekonomi}">${p.status_ekonomi}</span></div>
+      <div class="sub">
+        NIK: ${p.nik} | ${p.umur}th | ${p.pekerjaan || 'Tanpa pekerjaan'}
+        ${p.jumlah_bantuan_diterima == 0 ? ' | ⚠️ Belum dibantu' : ` | ✅ ${p.jumlah_bantuan_diterima}x dibantu`}
+        ${p.prioritas_bantuan === 'KRITIS' ? ' | 🔥 KRITIS' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderBelumDibantu(data) {
+  const belum = data.filter(p => p.jumlah_bantuan_diterima == 0 && p.status_ekonomi !== 'mampu');
+  const el = document.getElementById('belum-dibantu-list');
+  if (!belum.length) {
+    el.innerHTML = '<div class="empty-state" style="font-size:11px">🎉 Semua warga sudah dibantu!</div>';
+    return;
+  }
+  el.innerHTML = belum.slice(0, 5).map(p => `
+    <div class="list-item ${p.status_ekonomi}" onclick="lihatDetail('${p.nik}')">
+      <div class="name">${p.nama_lengkap}</div>
+      <div class="sub">${p.status_ekonomi} | ${p.kondisi_kesehatan.replace('_',' ')}</div>
+    </div>
+  `).join('');
+  if (belum.length > 5) el.innerHTML += `<div style="text-align:center;font-size:11px;color:var(--text2);padding:8px">+${belum.length - 5} lainnya</div>`;
+}
+
+function flyToAndOpen(nik, lat, lng) {
+  if (lat && lng) {
+    map.flyTo([parseFloat(lat), parseFloat(lng)], 17, { duration: 1 });
+    setTimeout(() => lihatDetail(nik), 800);
+  } else {
+    lihatDetail(nik);
+  }
+}
+
+// ===== FILTER =====
+function filterList() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = state.pendudukData.filter(p =>
+    p.nama_lengkap.toLowerCase().includes(q) || p.nik.includes(q)
+  );
+  renderDataList(filtered);
+}
+
+function filterData(filter, btn) {
+  document.querySelectorAll('#tab-data .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  let filtered = state.pendudukData;
+  if (filter === 'miskin') filtered = filtered.filter(p => p.status_ekonomi === 'miskin');
+  if (filter === 'rentan') filtered = filtered.filter(p => p.status_ekonomi === 'rentan');
+  if (filter === 'kritis') filtered = filtered.filter(p => p.prioritas_bantuan === 'KRITIS' || (p.status_ekonomi === 'miskin' && p.jumlah_bantuan_diterima == 0));
+  renderDataList(filtered);
+}
+
+function filterEkonomi(filter, btn) {
+  document.querySelectorAll('#tab-peta .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadPenduduk(filter === 'semua' ? '' : filter);
+}
+
+// ===== LOAD STATS =====
+async function loadStats() {
+  try {
+    const res  = await fetch(API_BASE + 'bantuan.php?action=dashboard_stats');
+    const json = await res.json();
+    if (!json.success) return;
+    const d = json.data;
+
+    document.getElementById('s-miskin').textContent   = d.total_miskin;
+    document.getElementById('s-rentan').textContent   = d.total_rentan;
+    document.getElementById('s-dibantu').textContent  = d.bantuan_bulan_ini;
+    document.getElementById('s-laporan').textContent  = d.laporan_pending;
+    document.getElementById('s-belum-dibantu').textContent = d.belum_pernah_dibantu;
+
+    // Chart
+    const ctx = document.getElementById('chartEkonomi').getContext('2d');
+    if (window._chart) window._chart.destroy();
+    window._chart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Miskin', 'Rentan', 'Mampu'],
+        datasets: [{
+          data: [d.total_miskin, d.total_rentan, d.total_mampu],
+          backgroundColor: ['#ef4444', '#f59e0b', '#22c55e'],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        plugins: { legend: { labels: { color: '#94a3b8', font: { weight: 'bold', size: 11 } } } },
+        cutout: '65%',
+      }
+    });
+  } catch (e) { console.error(e); }
+}
+
+// ===== DETAIL PENDUDUK =====
+async function lihatDetail(nik) {
+  openModal('modal-detail');
+  document.getElementById('detail-body').innerHTML = '<div style="text-align:center;padding:30px">Memuat...</div>';
+
+  try {
+    const res  = await fetch(API_BASE + `penduduk.php?action=detail&nik=${nik}`);
+    const json = await res.json();
+    if (!json.success) { document.getElementById('detail-body').innerHTML = `<p style="color:var(--red)">${json.message}</p>`; return; }
+
+    const p = json.data;
+    const h = json.histori;
+    const v = json.validasi;
+    const isLogin = !!state.currentUser;
+
+    document.getElementById('detail-title').textContent = `👤 ${p.nama_lengkap}`;
+
+    let histHtml = h.length ? h.map(hb => `
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div><strong>${hb.nama_bantuan}</strong> — ${hb.jumlah || '-'}</div>
+        <div style="color:var(--text2)">${hb.tanggal}</div>
+      </div>
+    `).join('') : '<div style="color:var(--text2);font-size:12px">Belum pernah menerima bantuan ⚠️</div>';
+
+    let warnHtml = v.warnings.length ? `<div class="validasi-warning" style="margin-top:8px">⚠️ ${v.warnings.join(' ')}</div>` : '';
+
+    document.getElementById('detail-body').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+        <div><span style="color:var(--text2)">NIK:</span> ${p.nik}</div>
+        <div><span style="color:var(--text2)">No KK:</span> ${p.no_kk || '-'}</div>
+        <div><span style="color:var(--text2)">Umur:</span> ${p.umur} tahun</div>
+        <div><span style="color:var(--text2)">JK:</span> ${p.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</div>
+        <div><span style="color:var(--text2)">Status Ekonomi:</span> <span class="tag ${p.status_ekonomi}">${p.status_ekonomi}</span></div>
+        <div><span style="color:var(--text2)">Prioritas:</span> <span class="tag kritis">${p.prioritas_bantuan}</span></div>
+        <div><span style="color:var(--text2)">Kesehatan:</span> ${p.kondisi_kesehatan.replace(/_/g,' ')}</div>
+        <div><span style="color:var(--text2)">Pekerjaan:</span> ${p.pekerjaan || '-'}</div>
+        <div><span style="color:var(--text2)">Penghasilan:</span> Rp ${(p.penghasilan || 0).toLocaleString('id')}/bln</div>
+        <div><span style="color:var(--text2)">Pendidikan:</span> ${p.pendidikan_terakhir}</div>
+        <div style="grid-column:1/-1"><span style="color:var(--text2)">Alamat:</span> ${p.alamat || '-'}</div>
+        <div style="grid-column:1/-1"><span style="color:var(--text2)">Rumah Ibadah:</span> ${p.nama_ri || '-'}</div>
+      </div>
+      ${warnHtml}
+      <div style="margin-top:14px">
+        <div style="font-size:11px;font-weight:900;color:var(--text2);margin-bottom:8px;text-transform:uppercase">Histori Bantuan (${h.length}x)</div>
+        ${histHtml}
+      </div>
+    `;
+
+    document.getElementById('detail-footer').innerHTML = isLogin && ['admin', 'pengurus'].includes(state.currentUser.role) ? `
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-detail')">Tutup</button>
+      <button class="btn btn-secondary btn-sm" style="background:var(--accent); color:#fff; border-color:var(--accent)" onclick="mulaiEditLokasi('penduduk', '${p.nik}', ${p.latitude || 'null'}, ${p.longitude || 'null'})">📍 Edit Lokasi</button>
+      <button class="btn btn-secondary btn-sm" onclick="editPenduduk('${p.nik}')">✏️ Edit Data</button>
+      <button class="btn btn-success btn-sm" onclick="bukaModalBantuan('${p.nik}', '${p.nama_lengkap}')">🎁 Beri Bantuan</button>
+    ` : `<button class="btn btn-secondary btn-sm" onclick="closeModal('modal-detail')">Tutup</button>`;
+
+  } catch (e) {
+    document.getElementById('detail-body').innerHTML = `<p style="color:var(--red)">Gagal memuat detail.</p>`;
+  }
+}
+
+// ===== HITUNG UMUR =====
+function hitungUmur() {
+  const tgl = document.getElementById('pddk-tgl').value;
+  if (!tgl) return;
+  const umur = Math.floor((new Date() - new Date(tgl)) / (365.25 * 24 * 3600 * 1000));
+  document.getElementById('pddk-umur').value = `${umur} tahun`;
+  cekValidasiPendidikan();
+}
+
+function cekValidasiPendidikan() {
+  const tgl = document.getElementById('pddk-tgl').value;
+  if (!tgl) return;
+  const umur = Math.floor((new Date() - new Date(tgl)) / (365.25 * 24 * 3600 * 1000));
+  const status = document.getElementById('pddk-spd').value;
+  const warn = document.getElementById('pddk-validasi-warn');
+
+  let msg = '';
+  if (umur >= 7 && umur <= 12 && status !== 'sekolah') msg = `⚠️ Anak usia ${umur} tahun seharusnya masih sekolah SD.`;
+  else if (umur >= 13 && umur <= 15 && status !== 'sekolah') msg = `⚠️ Anak usia ${umur} tahun seharusnya masih sekolah SMP.`;
+  else if (umur >= 16 && umur <= 18 && status !== 'sekolah') msg = `⚠️ Anak usia ${umur} tahun seharusnya masih sekolah SMA/SMK.`;
+
+  warn.style.display = msg ? 'block' : 'none';
+  warn.textContent = msg;
+}
+
+// ===== EDIT LOKASI DENGAN DRAG =====
+let editLokasiMarker = null;
+let editLokasiType = '';
+let editLokasiId = '';
+
+function mulaiEditLokasi(type, id, lat, lng) {
+  closeModal('modal-detail');
+  map.closePopup();
+  if (window.innerWidth < 768) document.getElementById('sidebar').classList.add('collapsed');
+
+  if (!lat || !lng) {
+    const center = map.getCenter();
+    lat = center.lat;
+    lng = center.lng;
+  }
+
+  editLokasiType = type;
+  editLokasiId = id;
+
+  // Buat marker yang bisa di-drag
+  editLokasiMarker = L.marker([lat, lng], { draggable: true }).addTo(map);
+  map.flyTo([lat, lng], 17, { duration: 1 });
+
+  // Tampilkan panel konfirmasi di bawah
+  const panel = document.createElement('div');
+  panel.id = 'edit-lokasi-panel';
+  panel.innerHTML = `
+    <div style="position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:var(--surface-solid); padding:16px 20px; border-radius:16px; border:2px solid var(--accent); z-index:9999; text-align:center; box-shadow:0 10px 40px rgba(0,0,0,0.5)">
+      <div style="color:#fff; font-weight:800; font-size:15px; margin-bottom:12px"><i class="fa-solid fa-arrows-up-down-left-right"></i> Geser Marker ke Lokasi Baru</div>
+      <div style="display:flex; gap:10px; justify-content:center">
+        <button class="btn btn-secondary" onclick="batalEditLokasi()">Batal</button>
+        <button class="btn" style="background:var(--accent); color:#fff" onclick="simpanEditLokasi()">✓ Konfirmasi Lokasi</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(panel);
+}
+
+function simpanEditLokasi() {
+  if (!editLokasiMarker) return;
+  const pos = editLokasiMarker.getLatLng();
+  
+  if (editLokasiType === 'penduduk') {
+    // Buka form edit dan otomatis isi lat/long
+    editPenduduk(editLokasiId).then(() => {
+      document.getElementById('pddk-lat').value = pos.lat.toFixed(6);
+      document.getElementById('pddk-lng').value = pos.lng.toFixed(6);
+      
+      // Highlight input lat/long
+      document.getElementById('pddk-lat').style.boxShadow = '0 0 10px var(--accent)';
+      document.getElementById('pddk-lng').style.boxShadow = '0 0 10px var(--accent)';
+      setTimeout(() => {
+        document.getElementById('pddk-lat').style.boxShadow = 'none';
+        document.getElementById('pddk-lng').style.boxShadow = 'none';
+      }, 2000);
+    });
+  } else {
+    // Simpan langsung via API
+    updateKoordinatApi(editLokasiType, editLokasiId, pos.lat.toFixed(6), pos.lng.toFixed(6), null, null, true);
+  }
+  
+  batalEditLokasi();
+}
+
+function batalEditLokasi() {
+  if (editLokasiMarker) {
+    map.removeLayer(editLokasiMarker);
+    editLokasiMarker = null;
+  }
+  const panel = document.getElementById('edit-lokasi-panel');
+  if (panel) panel.remove();
+}
+
+// ===== SIMPAN PENDUDUK =====
+async function simpanPenduduk() {
+  const nikEdit = document.getElementById('pddk-nik-edit').value;
+  const nik     = document.getElementById('pddk-nik').value.trim();
+  const nama    = document.getElementById('pddk-nama').value.trim();
+  const tgl     = document.getElementById('pddk-tgl').value;
+  const jk      = document.getElementById('pddk-jk').value;
+
+  if (!nik || !nama || !tgl) { showToast('NIK, Nama, dan Tanggal Lahir wajib diisi', 'error'); return; }
+  if (!/^\d{16}$/.test(nik)) { showToast('NIK harus 16 digit angka', 'error'); return; }
+
+  const payload = {
+    nik, nama_lengkap: nama, jenis_kelamin: jk, tanggal_lahir: tgl,
+    status_keluarga: document.getElementById('pddk-sk').value,
+    status_perkawinan: document.getElementById('pddk-sp').value,
+    pendidikan_terakhir: document.getElementById('pddk-ptk').value,
+    status_pendidikan: document.getElementById('pddk-spd').value,
+    status_ekonomi: document.getElementById('pddk-se').value,
+    kondisi_kesehatan: document.getElementById('pddk-kkh').value,
+    pekerjaan: document.getElementById('pddk-pkr').value,
+    penghasilan: document.getElementById('pddk-pgn').value,
+    alamat: document.getElementById('pddk-almt').value,
+    latitude: document.getElementById('pddk-lat').value,
+    longitude: document.getElementById('pddk-lng').value,
+  };
+
+  try {
+    const isEdit = !!nikEdit;
+    const url  = isEdit ? `${API_BASE}penduduk.php?action=update&nik=${nikEdit}` : `${API_BASE}penduduk.php`;
+    const res  = await fetch(url, {
+      method: isEdit ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+
+    if (json.success) {
+      showToast(json.message, 'success');
+      closeModal('modal-penduduk');
+      loadPenduduk();
+      if (json.validasi?.warnings?.length) {
+        setTimeout(() => showToast('⚠️ ' + json.validasi.warnings[0], 'error', 5000), 500);
+      }
+    } else {
+      showToast(json.message, 'error');
+    }
+  } catch (e) {
+    showToast('Gagal menyimpan data', 'error');
+  }
+}
+
+// ===== EDIT PENDUDUK =====
+async function editPenduduk(nik) {
+  const res  = await fetch(API_BASE + `penduduk.php?action=detail&nik=${nik}`);
+  const json = await res.json();
+  if (!json.success) return;
+  const p = json.data;
+
+  document.getElementById('pddk-nik-edit').value = p.nik;
+  document.getElementById('pddk-nik').value       = p.nik;
+  document.getElementById('pddk-nik').disabled    = true;
+  document.getElementById('pddk-nama').value      = p.nama_lengkap;
+  document.getElementById('pddk-jk').value        = p.jenis_kelamin;
+  document.getElementById('pddk-tgl').value       = p.tanggal_lahir;
+  document.getElementById('pddk-umur').value      = `${p.umur} tahun`;
+  document.getElementById('pddk-sk').value        = p.status_keluarga;
+  document.getElementById('pddk-sp').value        = p.status_perkawinan;
+  document.getElementById('pddk-ptk').value       = p.pendidikan_terakhir;
+  document.getElementById('pddk-spd').value       = p.status_pendidikan;
+  document.getElementById('pddk-se').value        = p.status_ekonomi;
+  document.getElementById('pddk-kkh').value       = p.kondisi_kesehatan;
+  document.getElementById('pddk-pkr').value       = p.pekerjaan || '';
+  document.getElementById('pddk-pgn').value       = p.penghasilan || 0;
+  document.getElementById('pddk-almt').value      = p.alamat || '';
+  document.getElementById('pddk-lat').value       = p.latitude || '';
+  document.getElementById('pddk-lng').value       = p.longitude || '';
+
+  document.getElementById('modal-pddk-title').textContent = `✏️ Edit: ${p.nama_lengkap}`;
+  closeModal('modal-detail');
+  openModal('modal-penduduk');
+}
+
+// ===== MODAL BANTUAN =====
+async function bukaModalBantuan(nik, nama) {
+  document.getElementById('ban-nik').value = nik;
+  document.getElementById('ban-target').innerHTML = `<strong>Penerima:</strong> ${nama} <span style="color:var(--text2)">(${nik})</span>`;
+  document.getElementById('ban-tgl').value = new Date().toISOString().split('T')[0];
+
+  // Load jenis bantuan
+  const res  = await fetch(API_BASE + 'bantuan.php?action=jenis');
+  const json = await res.json();
+  const sel  = document.getElementById('ban-jenis');
+  sel.innerHTML = json.data.map(j => `<option value="${j.id}">${j.nama} (${j.kategori})</option>`).join('');
+
+  closeModal('modal-detail');
+  openModal('modal-bantuan');
+}
+
+async function simpanBantuan() {
+  const payload = {
+    nik: document.getElementById('ban-nik').value,
+    id_jenis_bantuan: document.getElementById('ban-jenis').value,
+    tanggal: document.getElementById('ban-tgl').value,
+    status_penyaluran: document.getElementById('ban-status').value,
+    jumlah: document.getElementById('ban-jumlah').value,
+    nilai_rupiah: document.getElementById('ban-rp').value,
+    catatan: document.getElementById('ban-catatan').value,
+  };
+
+  try {
+    const res  = await fetch(API_BASE + 'bantuan.php?action=salurkan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (json.success) {
+      showToast('✅ Bantuan berhasil dicatat!', 'success');
+      closeModal('modal-bantuan');
+      loadPenduduk();
+    } else {
+      showToast(json.message, 'error');
+    }
+  } catch (e) { showToast('Gagal menyimpan bantuan', 'error'); }
+}
+
+// ===== LAPORAN =====
+async function submitLaporan() {
+  const deskripsi = document.getElementById('lap-deskripsi').value.trim();
+  if (deskripsi.length < 10) { showToast('Deskripsi terlalu singkat (min. 10 karakter)', 'error'); return; }
+
+  const form = new FormData();
+  form.append('nama_pelapor',    document.getElementById('lap-nama').value);
+  form.append('nik_terdampak',   document.getElementById('lap-nik').value);
+  form.append('deskripsi',       deskripsi);
+  form.append('kategori',        document.getElementById('lap-kategori').value);
+  form.append('tingkat_urgensi', document.getElementById('lap-urgensi').value);
+  form.append('alamat',          document.getElementById('lap-alamat').value);
+  form.append('latitude',        document.getElementById('lap-lat').value);
+  form.append('longitude',       document.getElementById('lap-lng').value);
+
+  try {
+    const res  = await fetch(API_BASE + 'laporan.php', { method: 'POST', body: form });
+    const json = await res.json();
+    if (json.success) {
+      showToast('✅ ' + json.message, 'success');
+      closeModal('modal-laporan');
+      loadLaporan();
+      // Reset form
+      ['lap-nama','lap-nik','lap-deskripsi','lap-alamat','lap-lat','lap-lng'].forEach(id => document.getElementById(id).value = '');
+    } else {
+      showToast(json.message, 'error');
+    }
+  } catch (e) { showToast('Gagal mengirim laporan', 'error'); }
+}
+
+// ===== CHAT =====
+let chatInterval = null;
+async function loadChatRooms() {
+  // Sudah terisi saat load RI
+}
+
+async function loadChat() {
+  const riId = document.getElementById('chat-room').value;
+  if (!riId) return;
+  if (chatInterval) clearInterval(chatInterval);
+
+  await fetchChat(riId);
+  chatInterval = setInterval(() => fetchChat(riId), 5000); // polling 5 detik
+}
+
+async function fetchChat(riId) {
+  try {
+    const res  = await fetch(API_BASE + `pesan.php?action=inbox&rumah_ibadah_id=${riId}`);
+    const json = await res.json();
+    const area = document.getElementById('chat-area');
+    if (!json.success) return;
+    if (!json.data.length) { area.innerHTML = '<div class="empty-state">Belum ada pesan</div>'; return; }
+
+    const uid = state.currentUser?.id;
+    area.innerHTML = json.data.map(m => `
+      <div class="chat-msg ${m.dari_user_id == uid ? 'mine' : ''}">
+        <div class="sender">${m.pengirim}</div>
+        <div class="bubble">${m.isi}</div>
+        <div class="time">${new Date(m.created_at).toLocaleTimeString('id', {hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+    `).join('');
+    area.scrollTop = area.scrollHeight;
+  } catch (e) { /* silent */ }
+}
+
+async function sendChat() {
+  if (!state.currentUser) { showToast('Harus login untuk mengirim pesan', 'error'); return; }
+  const isi  = document.getElementById('chat-input').value.trim();
+  const riId = document.getElementById('chat-room').value;
+  if (!isi || !riId) return;
+
+  try {
+    const res = await fetch(API_BASE + 'pesan.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isi, ke_rumah_ibadah_id: parseInt(riId) })
+    });
+    const json = await res.json();
+    if (json.success) {
+      document.getElementById('chat-input').value = '';
+      fetchChat(riId);
+    } else {
+      showToast(json.message, 'error');
+    }
+  } catch (e) { showToast('Gagal kirim pesan', 'error'); }
+}
+
+// ===== NOTIFIKASI =====
+async function loadNotifikasi() {
+  if (!state.currentUser) { showToast('Login untuk melihat notifikasi', 'error'); return; }
+  try {
+    const res  = await fetch(API_BASE + 'pesan.php?action=notifikasi');
+    const json = await res.json();
+    if (!json.success) return;
+    const unread = json.data.filter(n => !n.dibaca).length;
+    const badge = document.getElementById('notif-badge');
+    badge.style.display = unread ? 'inline' : 'none';
+    badge.textContent   = unread;
+    if (json.data.length) {
+      showToast(`🔔 ${unread} notifikasi baru`, 'info', 3000);
+    }
+  } catch (e) { /* silent */ }
+}
+
+// ===== CHECK LOGIN STATE =====
+async function doLogout() {
+  try {
+    await fetch(API_BASE + 'auth.php?action=logout', { method: 'POST' });
+    window.location.href = 'admin/login.php';
+  } catch (e) { showToast('Gagal logout', 'error'); }
+}
+
+async function checkLogin() {
+  try {
+    const res  = await fetch(API_BASE + 'auth.php?action=me');
+    const json = await res.json();
+    if (json.success) {
+      state.currentUser = json.data;
+      document.getElementById('btn-login').style.display  = 'none';
+      document.getElementById('btn-logout').style.display = 'flex';
+      document.getElementById('btn-admin').style.display  = 'flex';
+      if (['admin', 'pengurus'].includes(state.currentUser.role)) {
+        document.getElementById('btn-tambah').style.display = 'flex';
+      }
+      
+      document.getElementById('user-badge').style.display = 'flex';
+      document.getElementById('ub-name').textContent = state.currentUser.username;
+      document.getElementById('ub-role').textContent = state.currentUser.role;
+      
+      loadNotifikasi();
+      setInterval(loadNotifikasi, 30000);
+    } else {
+      window.location.href = 'admin/login.php';
+    }
+  } catch (e) {
+    window.location.href = 'admin/login.php';
+  }
+}
+
+// ===== REALTIME UPDATE SAAT KEMBALI KE TAB =====
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    // Saat user kembali dari tab Admin ke tab WebGIS, muat ulang data diam-diam
+    Promise.all([
+      loadPenduduk(),
+      loadKeluarga(),
+      loadRumahIbadah(),
+      loadLaporan()
+    ]).then(() => loadStats());
+  }
+});
+
+// ===== INIT =====
+async function init() {
+  await checkLogin();
+  
+  // Wajib load Rumah Ibadah duluan agar radius tersedia untuk kalkulasi Penduduk
+  await loadRumahIbadah();
+  
+  await Promise.all([
+    loadPenduduk(),
+    loadKeluarga(),
+    loadLaporan(),
+  ]);
+  loadStats();
+}
+
+init();
+</script>
+</body>
+</html>

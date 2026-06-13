@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual Book - WebGIS Project UAS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --secondary: #10B981;
+      --bg-gradient-start: #0f172a;
+      --bg-gradient-end: #1e1b4b;
+      --text-main: #f8fafc;
+      --text-muted: #cbd5e1;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --card-border: rgba(255, 255, 255, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient Background Orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      z-index: 0;
+      animation: float 10s infinite ease-in-out alternate;
+    }
+    .orb-1 { width: 400px; height: 400px; background: rgba(79, 70, 229, 0.2); top: -100px; left: -100px; }
+    .orb-2 { width: 300px; height: 300px; background: rgba(16, 185, 129, 0.15); bottom: -50px; right: -50px; animation-delay: -5s; }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(30px, 50px) scale(1.1); }
+    }
+
+    .container {
+      position: relative;
+      z-index: 10;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      margin-bottom: 30px;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: #fff; }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      background: linear-gradient(to right, #818cf8, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -1px;
+    }
+
+    .content-box {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 40px;
+      line-height: 1.7;
+    }
+
+    h2 { font-family: 'Outfit', sans-serif; font-size: 1.8rem; margin-top: 30px; margin-bottom: 15px; color: #fff; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; }
+    h3 { font-family: 'Outfit', sans-serif; font-size: 1.3rem; margin-top: 25px; margin-bottom: 10px; color: #e2e8f0; }
+    p { margin-bottom: 15px; color: var(--text-muted); }
+    ul, ol { margin-left: 20px; margin-bottom: 15px; color: var(--text-muted); }
+    li { margin-bottom: 8px; }
+    strong { color: #f8fafc; }
+
+    .alert {
+      padding: 15px 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+      font-weight: 500;
+      border-left: 4px solid;
+    }
+    .alert-tip { background: rgba(16, 185, 129, 0.1); border-color: #34d399; color: #a7f3d0; }
+    .alert-important { background: rgba(79, 70, 229, 0.1); border-color: #818cf8; color: #c7d2fe; }
+    .alert-caution { background: rgba(239, 68, 68, 0.1); border-color: #f87171; color: #fecaca; }
+
+    @media (max-width: 768px) {
+      h1 { font-size: 2.2rem; }
+      .content-box { padding: 25px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="container">
+    <a href="index.html" class="back-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+      Kembali ke Landing Page
+    </a>
+
+    <header>
+      <h1>Manual Book</h1>
+      <p style="font-size: 1.2rem;">Panduan Lengkap Portal WebGIS Project UAS</p>
+    </header>
+
+    <div class="content-box">
+      <p>Selamat datang di Panduan Penggunaan Sistem Portal WebGIS. Sistem ini terdiri dari dua proyek utama yang terintegrasi dalam satu landing page. Panduan ini dirancang untuk memudahkan Anda memahami dan mengoperasikan seluruh fitur yang tersedia sesuai dengan hak akses (role) Anda.</p>
+
+      <h2>1. Navigasi Awal (Landing Page)</h2>
+      <p>Saat pertama kali mengakses sistem, Anda akan disambut oleh halaman Portal Utama.</p>
+      <ul>
+        <li><strong>Kartu Pertama (WebGIS SPBU):</strong> Digunakan untuk mengakses peta fasilitas umum secara publik (tanpa login).</li>
+        <li><strong>Kartu Kedua (WebGIS Kemiskinan):</strong> Digunakan untuk mengakses sistem manajemen kemiskinan. Anda akan diarahkan ke halaman login karena sistem ini berbasis otorisasi.</li>
+      </ul>
+
+      <div class="alert alert-tip">
+        <strong>💡 Tip:</strong> Jika Anda sedang berada di dalam salah satu peta, Anda selalu bisa menekan tombol "Kembali ke Landing Page" (di sidebar kiri atau atas) untuk kembali ke menu awal.
+      </div>
+
+      <h2>2. Project 1: WebGIS SPBU (Akses Publik)</h2>
+      <p>Proyek ini dirancang sebagai sistem informasi geografis interaktif yang bersifat terbuka untuk masyarakat luas.</p>
+
+      <h3>A. Melihat dan Mencari Lokasi</h3>
+      <ul>
+        <li><strong>Peta Interaktif:</strong> Anda dapat menggeser (drag) dan memperbesar (scroll/zoom) peta.</li>
+        <li><strong>Filter & Layer:</strong> Di panel sebelah kiri, terdapat checkbox untuk menyalakan atau mematikan tampilan layer tertentu (contoh: menyembunyikan Jalan atau Rumah Ibadah).</li>
+        <li><strong>Filter Cepat:</strong> Gunakan tombol di Toolbar peta untuk langsung menyorot "SPBU 24 Jam".</li>
+      </ul>
+
+      <h3>B. Menambah Data Spasial (Simulasi)</h3>
+      <p>Sistem ini menyediakan alat untuk menggambar objek langsung di peta:</p>
+      <ul>
+        <li><strong>Point:</strong> Klik tombol Tambah Point, lalu klik area pada peta.</li>
+        <li><strong>Jalan:</strong> Klik Tambah Jalan, klik titik-titik untuk membuat jalur, klik ganda untuk selesai.</li>
+        <li><strong>Parsil:</strong> Buat area poligon dan satukan kembali ke titik awal.</li>
+      </ul>
+
+      <h2>3. Project 2: WebGIS Kemiskinan (Berbasis Otorisasi)</h2>
+      <p>Proyek ini adalah sistem tata kelola data kemiskinan yang terstruktur secara ketat berdasarkan Role-Based Access Control (RBAC).</p>
+
+      <div class="alert alert-important">
+        <strong>⚠️ Penting:</strong> Kebijakan Akses Peta sangat ketat. Peta ini tidak bisa diakses secara anonim. Jika Anda memaksa masuk melalui URL, Anda akan otomatis dialihkan ke halaman Login.
+      </div>
+
+      <h3>A. Hak Akses (Role)</h3>
+      <ul>
+        <li><strong>Admin (Administrator):</strong> Akses absolut. Bisa mengelola semua penduduk, semua rumah ibadah, user, dan histori log.</li>
+        <li><strong>Pengurus Masjid/Gereja:</strong> Dibatasi hanya mengelola warga dan bantuan di dalam <em>radius wilayah rumah ibadahnya</em>.</li>
+        <li><strong>Pimpinan Daerah:</strong> Akses <em>Read-Only</em>. Dirancang untuk Bupati/Camat yang perlu melihat statistik dan Heatmap secara luas tanpa bisa mengubah data.</li>
+        <li><strong>Warga Masyarakat:</strong> Dapat digunakan warga untuk sekadar login dan memantau transparansi (jika fitur diekspos).</li>
+      </ul>
+
+      <h3>B. Fitur Peta Kemiskinan</h3>
+      <ul>
+        <li><strong>Layer Ekonomi:</strong> Titik berwarna Hijau (Mampu), Kuning (Rentan), dan Merah (Miskin).</li>
+        <li><strong>Lapor Darurat 🚨:</strong> Tombol segitiga peringatan di atas peta digunakan warga untuk melaporkan tetangga yang kritis. Form bisa diisi anonim.</li>
+        <li><strong>Blind Spot:</strong> Di tab Statistik, pimpinan dapat menekan "Cari Titik Blind Spot" untuk menemukan warga miskin yang belum pernah mendapat bantuan apa pun.</li>
+      </ul>
+
+      <div class="alert alert-caution">
+        <strong>⚡ Peringatan Keamanan:</strong> Segala aktivitas seperti Edit, Hapus, dan Verifikasi akan direkam secara permanen ke dalam tabel <em>Log Aktivitas</em> bersama dengan Alamat IP dan waktu (Timestamp) Anda. Harap berhati-hati saat memanipulasi data!
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

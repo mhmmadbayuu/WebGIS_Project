@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WebGIS SPBU, Jalan, Parsil, Rumah Ibadah, dan Pemukiman</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <a href="../index.html" class="btn btn-back"><i class="fa-solid fa-arrow-left"></i> Kembali ke Landing Page</a>
+    <div class="brand">
+      <div class="brand-badge" aria-hidden="true"><i class="fa-solid fa-map-location-dot"></i></div>
+      <div>
+        <h1>WebGIS SPBU</h1>
+        <p>Infrastruktur & Pemukiman</p>
+      </div>
+    </div>
+
+    <div id="modeInfo" class="mode-info">Mode: Tidak aktif</div>
+
+    <div class="action-grid">
+      <button id="btnModePoint" class="btn btn-primary" type="button" onclick="setMode('point')"><i class="fa-solid fa-gas-pump"></i> Tambah Point</button>
+      <button id="btnModeJalan" class="btn btn-secondary" type="button" onclick="setMode('jalan')"><i class="fa-solid fa-road"></i> Tambah Jalan</button>
+      <button id="btnModeParsil" class="btn btn-secondary" type="button" onclick="setMode('parsil')"><i class="fa-solid fa-draw-polygon"></i> Tambah Parsil</button>
+      <button id="btnModeRumahIbadah" class="btn btn-secondary" type="button" onclick="setMode('rumahIbadah')"><i class="fa-solid fa-mosque"></i> Rumah Ibadah</button>
+      <button id="btnModePemukiman" class="btn btn-secondary" type="button" onclick="setMode('pemukiman')"><i class="fa-solid fa-house-chimney-crack"></i> Pemukiman</button>
+      <button id="btnResetMode" class="btn btn-danger" type="button" onclick="resetMode()"><i class="fa-solid fa-xmark"></i> Batal Mode</button>
+    </div>
+
+    <div class="stats" aria-label="Statistik layer">
+      <div class="stat-card">
+        <div class="stat-value" id="countPoints">0</div>
+        <div class="stat-label">Point SPBU</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="countJalan">0</div>
+        <div class="stat-label">Jalan</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="countParsil">0</div>
+        <div class="stat-label">Parsil</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="countRumahIbadah">0</div>
+        <div class="stat-label">Rumah Ibadah</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="countPemukiman">0</div>
+        <div class="stat-label">Pemukiman Miskin</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="countSektor">0</div>
+        <div class="stat-label">Sektor Kecamatan</div>
+      </div>
+    </div>
+
+    <div class="panel layer-panel">
+      <h2><i class="fa-solid fa-layer-group"></i> Layer Peta</h2>
+      <label class="checkbox-row">
+        <input type="checkbox" id="togglePoints" checked>
+        <span class="chk-label">Point SPBU</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="toggleJalan" checked>
+        <span class="chk-label">Jaringan Jalan</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="toggleParsil" checked>
+        <span class="chk-label">Batas Parsil</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="toggleRumahIbadah" checked>
+        <span class="chk-label">Rumah Ibadah (+ radius)</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="togglePemukiman" checked>
+        <span class="chk-label">Pemukiman Miskin</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="toggleSektor" checked>
+        <span class="chk-label">Sektor Kecamatan</span>
+      </label>
+    </div>
+
+    <div class="panel">
+      <h2>Daftar SPBU</h2>
+      <div id="pointsList" class="list" aria-label="Daftar point SPBU"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Daftar Jalan</h2>
+      <div id="jalanList" class="list" aria-label="Daftar jalan"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Daftar Parsil</h2>
+      <div id="parsilList" class="list" aria-label="Daftar parsil"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Daftar Rumah Ibadah</h2>
+      <div id="rumahIbadahList" class="list" aria-label="Daftar rumah ibadah"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Daftar Pemukiman Miskin</h2>
+      <div id="pemukimanList" class="list" aria-label="Daftar pemukiman miskin"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Daftar Sektor Kecamatan</h2>
+      <div id="sektorList" class="list" aria-label="Daftar sektor kecamatan"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Legenda</h2>
+      <div class="legend-item"><span class="swatch spbu24"></span> SPBU 24 Jam</div>
+      <div class="legend-item"><span class="swatch spbuNon"></span> SPBU Tidak 24 Jam</div>
+      <div class="legend-item"><span class="swatch nasional"></span> Jalan Nasional</div>
+      <div class="legend-item"><span class="swatch provinsi"></span> Jalan Provinsi</div>
+      <div class="legend-item"><span class="swatch kabupaten"></span> Jalan Kabupaten</div>
+      <div class="legend-item legend-sep"><span class="swatch shm"></span> Parsil SHM</div>
+      <div class="legend-item"><span class="swatch hgb"></span> Parsil HGB</div>
+      <div class="legend-item"><span class="swatch hgu"></span> Parsil HGU</div>
+      <div class="legend-item"><span class="swatch hp"></span> Parsil HP</div>
+      <div class="legend-item legend-sep"><span class="swatch ri"></span> Rumah Ibadah</div>
+      <div class="legend-item"><span class="swatch pmGreen"></span> Pemukiman (dalam radius bantuan)</div>
+      <div class="legend-item"><span class="swatch pmRed"></span> Pemukiman (di luar radius bantuan)</div>
+    </div>
+
+    <div id="helpBox" class="help-box">
+      Pilih mode di atas, lalu:
+      <br><b>Point</b>: klik lokasi di peta.
+      <br><b>Jalan</b>: gambar garis, double-click untuk selesai.
+      <br><b>Parsil</b>: gambar poligon, klik titik awal untuk selesai.
+      <br><b>Rumah Ibadah</b>: klik lokasi di peta.
+      <br><b>Pemukiman</b>: klik lokasi di peta.
+      <br><br>Klik objek di peta untuk <b>Edit</b> / <b>Hapus</b> (CRUD).
+    </div>
+  </aside>
+
+  <!-- MAP -->
+  <main class="map-area">
+    <div class="map-toolbar" aria-label="Toolbar peta">
+      <div class="map-toolbar-row">
+        <button class="map-tool" id="btnResetView" type="button">Reset View</button>
+        <button class="map-tool" id="btnMyLocation" type="button">Lokasi Saya</button>
+      </div>
+      <div class="map-toolbar-row">
+        <button class="map-tool" id="btnFilter24" type="button">SPBU 24 Jam</button>
+        <button class="map-tool" id="btnFilterNon24" type="button">SPBU Tidak 24 Jam</button>
+      </div>
+    </div>
+    <div id="editBar" class="edit-bar hidden" aria-label="Edit lokasi">
+      <div class="edit-bar-title" id="editBarTitle">Edit Lokasi</div>
+      <button class="edit-bar-btn danger hidden" id="btnDeleteVertex" type="button">Hapus Vertex</button>
+      <button class="edit-bar-btn primary" id="btnSaveLocation" type="button">Simpan Lokasi</button>
+      <button class="edit-bar-btn" id="btnCancelLocation" type="button">Batal</button>
+    </div>
+    <div id="map"></div>
+  </main>
+
+</div>
+
+<!-- MODAL -->
+<div id="featureModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-card">
+
+    <div class="modal-header">
+      <h3 id="modalTitle">Input Data</h3>
+      <button type="button" class="close-btn" onclick="closeModal()" aria-label="Tutup">&times;</button>
+    </div>
+
+    <form id="featureForm">
+      <p id="formNotice" class="notice hidden"></p>
+
+      <!-- POINT -->
+      <div id="pointFields" class="form-section hidden">
+        <h4>Point SPBU</h4>
+
+        <label for="namaPoint">Nama</label>
+        <input id="namaPoint" placeholder="Contoh: SPBU Sudirman" required>
+
+        <label for="noPoint">No</label>
+        <input id="noPoint" placeholder="Contoh: 64.781.01" required>
+
+        <label for="deskripsiPoint">Deskripsi</label>
+        <textarea id="deskripsiPoint" placeholder="Catatan singkat (opsional)" rows="3"></textarea>
+
+        <label class="checkbox-row">
+          <input type="checkbox" id="status24Jam"> 24 Jam
+        </label>
+
+        <div class="grid-2">
+          <div>
+            <label for="latPoint">Latitude</label>
+            <input id="latPoint" readonly>
+          </div>
+          <div>
+            <label for="lngPoint">Longitude</label>
+            <input id="lngPoint" readonly>
+          </div>
+        </div>
+      </div>
+
+      <!-- JALAN -->
+      <div id="roadFields" class="form-section hidden">
+        <h4>Jalan</h4>
+
+        <label for="namaJalan">Nama Jalan</label>
+        <input id="namaJalan" placeholder="Contoh: Jl. Ahmad Yani" required>
+
+        <label for="statusJalan">Status</label>
+        <select id="statusJalan">
+          <option value="Nasional">Nasional</option>
+          <option value="Provinsi">Provinsi</option>
+          <option value="Kabupaten">Kabupaten</option>
+        </select>
+      </div>
+
+      <!-- PARSIL -->
+      <div id="parsilFields" class="form-section hidden">
+        <h4>Parsil</h4>
+
+        <label for="statusParsil">Status Kepemilikan</label>
+        <select id="statusParsil">
+          <option value="SHM">SHM</option>
+          <option value="HGB">HGB</option>
+          <option value="HGU">HGU</option>
+          <option value="HP">HP</option>
+        </select>
+      </div>
+
+      <!-- RUMAH IBADAH -->
+      <div id="rumahIbadahFields" class="form-section hidden">
+        <h4>Rumah Ibadah</h4>
+
+        <label for="namaRumahIbadah">Nama</label>
+        <input id="namaRumahIbadah" placeholder="Contoh: Masjid Al-Ikhlas" required>
+
+        <label for="jenisRumahIbadah">Jenis</label>
+        <select id="jenisRumahIbadah">
+          <option value="Lainnya">Lainnya</option>
+          <option value="Masjid">Masjid</option>
+          <option value="Gereja">Gereja</option>
+          <option value="Pura">Pura</option>
+          <option value="Vihara">Vihara</option>
+          <option value="Klenteng">Klenteng</option>
+        </select>
+
+        <label for="kontakRumahIbadah">Kontak (opsional)</label>
+        <input id="kontakRumahIbadah" placeholder="No HP / PIC (opsional)">
+
+        <label for="radiusRumahIbadah">Radius Bantuan (meter)</label>
+        <input id="radiusRumahIbadah" type="number" min="1" step="1" placeholder="Contoh: 500" required>
+
+        <label for="alamatRumahIbadah">Alamat (opsional)</label>
+        <textarea id="alamatRumahIbadah" placeholder="Alamat singkat (opsional)" rows="2"></textarea>
+
+        <div class="grid-2">
+          <div>
+            <label for="latRumahIbadah">Latitude</label>
+            <input id="latRumahIbadah" readonly>
+          </div>
+          <div>
+            <label for="lngRumahIbadah">Longitude</label>
+            <input id="lngRumahIbadah" readonly>
+          </div>
+        </div>
+      </div>
+
+      <!-- PEMUKIMAN MISKIN -->
+      <div id="pemukimanFields" class="form-section hidden">
+        <h4>Pemukiman Miskin</h4>
+
+        <label for="kkNamaPemukiman">Nama KK</label>
+        <input id="kkNamaPemukiman" placeholder="Contoh: Budi" required>
+
+        <label for="nikPemukiman">NIK (opsional)</label>
+        <input id="nikPemukiman" placeholder="Contoh: 6171xxxxxxxxxxxx">
+
+        <label for="jumlahAnggotaPemukiman">Jumlah Anggota (opsional)</label>
+        <input id="jumlahAnggotaPemukiman" type="number" min="0" step="1" placeholder="Contoh: 4">
+
+        <label for="statusBantuanPemukiman">Status Bantuan</label>
+        <select id="statusBantuanPemukiman">
+          <option value="Belum dibantu">Belum dibantu</option>
+          <option value="Menunggu verifikasi">Menunggu verifikasi</option>
+          <option value="Sudah dibantu">Sudah dibantu</option>
+        </select>
+
+        <label for="jenisBantuanPemukiman">Jenis Bantuan (opsional)</label>
+        <input id="jenisBantuanPemukiman" placeholder="Contoh: Sembako">
+
+        <label for="tanggalBantuanPemukiman">Tanggal Bantuan (opsional)</label>
+        <input id="tanggalBantuanPemukiman" type="date">
+
+        <label for="alamatPemukiman">Alamat (opsional)</label>
+        <textarea id="alamatPemukiman" placeholder="Alamat singkat (opsional)" rows="2"></textarea>
+
+        <div class="grid-2">
+          <div>
+            <label for="kelurahanPemukiman">Kelurahan (opsional)</label>
+            <input id="kelurahanPemukiman" placeholder="Contoh: Sungai Jawi">
+          </div>
+          <div>
+            <label for="kecamatanPemukiman">Kecamatan (opsional)</label>
+            <input id="kecamatanPemukiman" placeholder="Contoh: Pontianak Kota">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label for="latPemukiman">Latitude</label>
+            <input id="latPemukiman" readonly>
+          </div>
+          <div>
+            <label for="lngPemukiman">Longitude</label>
+            <input id="lngPemukiman" readonly>
+          </div>
+        </div>
+      </div>
+
+      <!-- BUTTON -->
+      <div class="modal-actions">
+        <button id="btnSubmitFeature" class="btn btn-primary" type="submit">Simpan Data</button>
+        <button class="btn btn-secondary" type="button" onclick="closeModal()">Batal</button>
+      </div>
+
+    </form>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden" aria-live="polite" aria-atomic="true"></div>
+
+<!-- SCRIPT -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.geometryutil/0.10.1/leaflet.geometryutil.min.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

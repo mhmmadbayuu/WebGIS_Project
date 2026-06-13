@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: webgis_app
+    # Di Coolify, ports tidak perlu di-bind ke host, cukup expose port internal
+    expose:
+      - "80"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=rahasia
+      # DB_NAME tidak didefinisikan agar fallback ke 'webgis_kemiskinan' dan 'webgis_spbu' otomatis berfungsi
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: mariadb:10.11
+    container_name: webgis_db
+    environment:
+      - MYSQL_ROOT_PASSWORD=rahasia
+    volumes:
+      - db_mariadb:/var/lib/mysql
+      # Menyambungkan folder init-db agar tabel otomatis terbuat saat pertama kali dinyalakan
+      - ./init-db:/docker-entrypoint-initdb.d
+    expose:
+      - "3306"
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: webgis_pma
+    environment:
+      - PMA_HOST=db
+      - PMA_USER=root
+      - PMA_PASSWORD=rahasia
+    expose:
+      - "80"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  db_mariadb:
