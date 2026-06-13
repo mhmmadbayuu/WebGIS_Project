@@ -5,13 +5,14 @@
 // ============================================================
 
 // Support Railway MySQL plugin env vars (MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLPORT)
-// Prioritas: Railway vars > custom vars > default localhost
+// Juga support MYSQL_PRIVATE_URL yang di-parse oleh docker-entrypoint.sh
 define('DB_HOST',    getenv('MYSQLHOST')     ?: getenv('DB_HOST')     ?: 'localhost');
 define('DB_PORT',    getenv('MYSQLPORT')     ?: getenv('DB_PORT')     ?: '3306');
 define('DB_NAME',    getenv('MYSQLDATABASE') ?: getenv('DB_NAME_KEMISKINAN') ?: 'webgis_kemiskinan');
 define('DB_USER',    getenv('MYSQLUSER')     ?: getenv('DB_USER')     ?: 'root');
 define('DB_PASS',    getenv('MYSQLPASSWORD') ?: getenv('DB_PASSWORD') ?: '');
 define('DB_CHARSET', 'utf8mb4');
+
 
 define('APP_NAME',    'WebGIS Pengentasan Kemiskinan');
 define('APP_VERSION', '2.0.0');
@@ -41,22 +42,51 @@ $pdoOptions = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES   => false,
+    PDO::ATTR_TIMEOUT            => 5, // Fail fast (5 detik) agar tidak hanging
 ];
+
 
 try {
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $pdoOptions);
 } catch (PDOException $e) {
-    http_response_code(500);
-    header('Content-Type: application/json');
-    // Jangan expose detail error di produksi
+    http_response_code(503);
     $errMsg = (defined('APP_ENV') && APP_ENV === 'development') ? $e->getMessage() : 'Hubungi administrator sistem.';
-    echo json_encode([
-        'success' => false,
-        'message' => 'Koneksi database gagal: ' . DB_NAME . '@' . DB_HOST . ' tidak ditemukan. Pastikan database sudah dibuat dan nama database benar.',
-        'error'   => $errMsg
-    ]);
+    
+    // Deteksi apakah ini API call atau halaman HTML
+    $isApiCall = (strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false)
+              || (strpos($_SERVER['REQUEST_URI'] ?? '', '/php/') !== false)
+              || (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest')
+              || (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html') === false);
+    
+    if ($isApiCall) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => 'Koneksi database gagal: ' . DB_NAME . '@' . DB_HOST,
+            'error'   => $errMsg
+        ]);
+    } else {
+        // Tampilkan halaman error HTML agar tidak 502
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Database Tidak Tersedia</title>
+        <style>body{font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9;display:flex;
+        align-items:center;justify-content:center;min-height:100vh;margin:0;}
+        .box{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:40px;max-width:460px;text-align:center;}
+        h2{color:#f87171;margin:0 0 12px;}p{color:#94a3b8;margin:0 0 20px;line-height:1.6;}
+        a{color:#3b82f6;text-decoration:none;font-weight:600;}
+        .icon{font-size:48px;margin-bottom:16px;}</style></head><body>
+        <div class="box"><div class="icon">🔌</div>
+        <h2>Database Belum Tersedia</h2>
+        <p>Koneksi ke database sedang diinisialisasi.<br>
+        Silakan tunggu beberapa saat dan muat ulang halaman.</p>
+        <a href="javascript:location.reload()">🔄 Muat Ulang</a> &nbsp;|
+        &nbsp;<a href="/">← Kembali ke Portal</a></div></body></html>';
+    }
     exit;
 }
+
 
 // ============================================================
 // Helper: Response JSON
