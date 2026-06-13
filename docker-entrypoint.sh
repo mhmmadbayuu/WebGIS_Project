@@ -64,6 +64,8 @@ port=${MYSQL_PORT}
 user=${MYSQLUSER}
 password=${MYSQLPASSWORD}
 connect_timeout=10
+ssl-verify-server-cert=false
+ssl=false
 CNFEOF
   echo "[INFO] MySQL config ditulis ke $MYSQL_CNF"
 
