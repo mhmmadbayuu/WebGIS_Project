@@ -3,7 +3,7 @@
 // Prioritas: Railway vars > custom vars > default localhost
 $host = getenv('MYSQLHOST')     ?: getenv('DB_HOST')      ?: "localhost";
 $port = getenv('MYSQLPORT')     ?: getenv('DB_PORT')      ?: "3306";
-$db   = getenv('MYSQLDATABASE') ?: getenv('DB_NAME_SPBU') ?: "webgis_spbu";
+$db   = "webgis_spbu"; // Force use webgis_spbu instead of Railway's default db
 $user = getenv('MYSQLUSER')     ?: getenv('DB_USER')      ?: "root";
 $pass = getenv('MYSQLPASSWORD') ?: getenv('DB_PASSWORD')  ?: "";
 

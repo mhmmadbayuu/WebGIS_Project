@@ -20,9 +20,10 @@ if ($dbUrl) {
         $dbPort = $parsed['port'] ?? $dbPort;
         $dbUser = $parsed['user'] ?? $dbUser;
         $dbPass = $parsed['pass'] ?? $dbPass;
-        $dbName = isset($parsed['path']) ? ltrim($parsed['path'], '/') : $dbName;
+        // JANGAN override dbName dengan path dari URL karena Railway path = /railway
     }
 }
+$dbName = 'webgis_kemiskinan'; // FORCE database name karena schema ada di webgis_kemiskinan
 
 define('DB_HOST',    $dbHost);
 define('DB_PORT',    $dbPort);
