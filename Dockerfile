@@ -34,7 +34,6 @@ RUN mkdir -p /var/www/html/webgis-kemiskinan/uploads/bukti \
     && chown -R www-data:www-data /var/www/html
 
 # Force explicit port configuration for Railway Proxy
-ENV PORT=8080
-EXPOSE 8080
+EXPOSE 80
 
 CMD ["/bin/bash", "/var/www/html/docker-entrypoint.sh"]
