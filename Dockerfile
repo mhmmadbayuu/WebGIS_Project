@@ -33,7 +33,7 @@ RUN mkdir -p /var/www/html/webgis-kemiskinan/uploads/bukti \
     && chown -R www-data:www-data /var/www/html/webgis-spbu/uploads \
     && chown -R www-data:www-data /var/www/html
 
-# Railway assign port dinamis via $PORT (default 80 jika tidak ada)
-EXPOSE 80
+# Railway akan otomatis inject $PORT (biasanya 8080)
+# Jangan gunakan EXPOSE statis agar Railway proxy tidak salah route
 
 CMD ["/bin/bash", "/var/www/html/docker-entrypoint.sh"]

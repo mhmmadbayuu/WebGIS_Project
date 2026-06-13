@@ -16,7 +16,7 @@ a2enmod mpm_prefork 2>/dev/null || true
 # ============================================================
 # KONFIGURASI PORT APACHE
 # ============================================================
-APP_PORT="${PORT:-80}"
+APP_PORT="${PORT:-8080}"
 echo "[INFO] Mengkonfigurasi Apache pada port $APP_PORT..."
 cat > /etc/apache2/ports.conf << EOF
 Listen $APP_PORT
