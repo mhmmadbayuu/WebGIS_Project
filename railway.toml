@@ -3,8 +3,10 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "apache2-foreground"
+# startCommand DIHAPUS karena akan OVERRIDE CMD di Dockerfile
+# dan melewati script inisialisasi database (docker-entrypoint.sh).
+# Railway akan menggunakan CMD dari Dockerfile secara otomatis.
 healthcheckPath = "/"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
