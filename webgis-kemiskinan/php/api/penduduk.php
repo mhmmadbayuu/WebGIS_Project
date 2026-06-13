@@ -55,7 +55,7 @@ if ($method === 'GET') {
         $sql = "
             SELECT
                 p.nik, p.nama_lengkap, p.jenis_kelamin, p.tanggal_lahir,
-                p.umur, p.status_keluarga, p.status_perkawinan,
+                TIMESTAMPDIFF(YEAR, p.tanggal_lahir, CURDATE()) AS umur, p.status_keluarga, p.status_perkawinan,
                 p.status_ekonomi, p.kondisi_kesehatan,
                 p.pekerjaan, p.penghasilan,
                 p.pendidikan_terakhir, p.status_pendidikan,
@@ -94,7 +94,7 @@ if ($method === 'GET') {
         if (!validateNIK($nik)) jsonResponse(false, 'NIK tidak valid.', [], 400);
 
         $stmt = $pdo->prepare("
-            SELECT p.*, k.no_kk, k.nama_kk, ri.nama AS nama_ri
+            SELECT p.*, TIMESTAMPDIFF(YEAR, p.tanggal_lahir, CURDATE()) AS umur, k.no_kk, k.nama_kk, ri.nama AS nama_ri
             FROM penduduk p
             LEFT JOIN keluarga k ON k.id = p.id_keluarga
             LEFT JOIN rumah_ibadah ri ON ri.id = k.rumah_ibadah_id

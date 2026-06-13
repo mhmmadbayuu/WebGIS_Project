@@ -6,7 +6,7 @@ $rows = [];
 try {
     $rows = $pdo->query("
         SELECT p.nik, p.nama_lengkap, p.status_ekonomi, p.kondisi_kesehatan,
-               p.umur, p.pekerjaan, p.penghasilan, p.alamat,
+               TIMESTAMPDIFF(YEAR, p.tanggal_lahir, CURDATE()) AS umur, p.pekerjaan, p.penghasilan, p.alamat,
                k.no_kk, k.nama_kk, ri.nama AS nama_ri, ri.jenis AS jenis_ri
         FROM penduduk p
         LEFT JOIN keluarga k ON k.id=p.id_keluarga

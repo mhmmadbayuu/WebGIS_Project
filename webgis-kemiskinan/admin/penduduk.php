@@ -82,8 +82,8 @@ if ($se)     { $where[] = 'p.status_ekonomi=:se'; $params[':se']=$se; }
 $whereStr = $where ? 'WHERE '.implode(' AND ',$where) : '';
 
 $rows = $pdo->prepare("
-    SELECT p.nik,p.nama_lengkap,p.umur,p.jenis_kelamin,p.status_ekonomi,p.kondisi_kesehatan,
-           p.pekerjaan,p.status_hidup,k.no_kk,ri.nama AS nama_ri,
+    SELECT p.nik,p.nama_lengkap,TIMESTAMPDIFF(YEAR, p.tanggal_lahir, CURDATE()) AS umur,p.jenis_kelamin,p.status_ekonomi,p.kondisi_kesehatan,
+           p.pekerjaan,p.status_hidup,k.nama_kk,k.no_kk,ri.nama AS nama_ri,
            (SELECT COUNT(*) FROM histori_bantuan hb WHERE hb.nik=p.nik AND hb.status_penyaluran='disalurkan') AS jml_bantuan
     FROM penduduk p
     LEFT JOIN keluarga k ON k.id=p.id_keluarga

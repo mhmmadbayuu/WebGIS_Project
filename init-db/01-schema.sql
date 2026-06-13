@@ -127,9 +127,7 @@ CREATE TABLE penduduk (
   nama_lengkap    VARCHAR(200)  NOT NULL,
   jenis_kelamin   ENUM('L','P') NOT NULL,
   tanggal_lahir   DATE          NOT NULL,
-  umur            TINYINT UNSIGNED GENERATED ALWAYS AS (
-    TIMESTAMPDIFF(YEAR, tanggal_lahir, CURDATE())
-  ) VIRTUAL,
+  umur            TINYINT UNSIGNED NULL,
   status_keluarga ENUM('kepala_keluarga','istri','anak','menantu','cucu','orang_tua','mertua','anggota_lain') NOT NULL DEFAULT 'anggota_lain',
   status_perkawinan ENUM('belum_kawin','kawin','cerai_hidup','cerai_mati') NOT NULL DEFAULT 'belum_kawin',
   status_hidup    ENUM('hidup','meninggal') NOT NULL DEFAULT 'hidup',
