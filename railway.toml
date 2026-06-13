@@ -3,10 +3,13 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# startCommand DIHAPUS karena akan OVERRIDE CMD di Dockerfile
-# dan melewati script inisialisasi database (docker-entrypoint.sh).
-# Railway akan menggunakan CMD dari Dockerfile secara otomatis.
+# startCommand TIDAK diisi — Railway akan gunakan CMD dari Dockerfile
+# (docker-entrypoint.sh yang menginisialisasi DB lalu start Apache)
 healthcheckPath = "/"
-healthcheckTimeout = 60
+# Timeout 300 detik: memberi waktu cukup untuk:
+# - MySQL wait (max 60 detik)
+# - DB initialization / schema import
+# - Apache startup
+healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3

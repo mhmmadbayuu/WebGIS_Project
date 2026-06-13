@@ -1,8 +1,19 @@
 #!/bin/bash
 # WebGIS Project - Docker Entrypoint Script
-# Jalankan inisialisasi DB lalu start Apache
 
 echo "--- WebGIS Startup Script ---"
+
+# ============================================================
+# FIX: Konfigurasi Apache untuk listen pada port Railway ($PORT)
+# Railway menyediakan port dinamis via env var $PORT.
+# Default ke 80 jika tidak ada (untuk local/Coolify).
+# ============================================================
+APP_PORT="${PORT:-80}"
+echo "[INFO] Mengkonfigurasi Apache pada port $APP_PORT..."
+echo "Listen $APP_PORT" > /etc/apache2/ports.conf
+# Update VirtualHost agar sesuai dengan port yang diberikan Railway
+sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${APP_PORT}>/g" \
+    /etc/apache2/sites-enabled/000-default.conf 2>/dev/null || true
 
 # Inisialisasi database hanya jika Railway MySQL tersedia
 if [ -n "$MYSQLHOST" ]; then
@@ -33,7 +44,7 @@ if [ -n "$MYSQLHOST" ]; then
       -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='webgis_kemiskinan';" \
       --skip-column-names --silent 2>/dev/null || echo "0")
 
-    # Pastikan TABLE_COUNT adalah angka
+    # Pastikan TABLE_COUNT adalah angka murni
     TABLE_COUNT=$(echo "$TABLE_COUNT" | tr -d '[:space:]')
     if ! echo "$TABLE_COUNT" | grep -qE '^[0-9]+$'; then
       TABLE_COUNT=0
@@ -59,5 +70,5 @@ else
   echo "[WARN] MYSQLHOST tidak diset, melewati inisialisasi database."
 fi
 
-echo "=== Menjalankan Apache ==="
+echo "=== Menjalankan Apache pada port $APP_PORT ==="
 exec apache2-foreground
