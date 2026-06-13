@@ -98,7 +98,6 @@ CNFEOF
     # ============================================================
     echo "[INFO] Test koneksi MySQL..."
     CONN_TEST=$(mysql --defaults-file="$MYSQL_CNF" \
-      --get-server-public-key \
       -e "SELECT 'OK';" --skip-column-names 2>&1)
     
     if echo "$CONN_TEST" | grep -q "OK"; then
@@ -106,13 +105,13 @@ CNFEOF
 
       # CREATE databases
       echo "[INFO] Membuat database..."
-      mysql --defaults-file="$MYSQL_CNF" --get-server-public-key \
+      mysql --defaults-file="$MYSQL_CNF" \
         -e "CREATE DATABASE IF NOT EXISTS webgis_kemiskinan CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
             CREATE DATABASE IF NOT EXISTS webgis_spbu CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>&1 \
         | grep -v "^$" && echo "[OK] Database siap!" || true
 
       # Cek tabel
-      TABLE_COUNT=$(mysql --defaults-file="$MYSQL_CNF" --get-server-public-key \
+      TABLE_COUNT=$(mysql --defaults-file="$MYSQL_CNF" \
         --skip-column-names --silent \
         -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='webgis_kemiskinan';" \
         2>/dev/null || echo "0")
@@ -122,7 +121,7 @@ CNFEOF
 
       if [ "$TABLE_COUNT" -lt "3" ]; then
         echo "[INFO] Mengimpor schema webgis_kemiskinan..."
-        if mysql --defaults-file="$MYSQL_CNF" --get-server-public-key \
+        if mysql --defaults-file="$MYSQL_CNF" \
             webgis_kemiskinan < /var/www/html/init-db/01-schema.sql 2>&1; then
           echo "[OK] Schema kemiskinan berhasil diimpor!"
         else
@@ -130,7 +129,7 @@ CNFEOF
         fi
 
         echo "[INFO] Mengimpor schema webgis_spbu..."
-        if mysql --defaults-file="$MYSQL_CNF" --get-server-public-key \
+        if mysql --defaults-file="$MYSQL_CNF" \
             webgis_spbu < /var/www/html/init-db/02-schema_webgis_spbu.sql 2>&1; then
           echo "[OK] Schema spbu berhasil diimpor!"
         else
