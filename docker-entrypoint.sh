@@ -19,7 +19,8 @@ a2enmod mpm_prefork 2>/dev/null || true
 APP_PORT="${PORT:-8080}"
 echo "[INFO] Mengkonfigurasi Apache pada port $APP_PORT..."
 cat > /etc/apache2/ports.conf << EOF
-Listen $APP_PORT
+Listen 0.0.0.0:$APP_PORT
+Listen [::]:$APP_PORT
 EOF
 sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${APP_PORT}>/g" \
     /etc/apache2/sites-enabled/000-default.conf 2>/dev/null || true
