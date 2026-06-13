@@ -4,11 +4,13 @@
 // WebGIS Pengentasan Kemiskinan v2.0
 // ============================================================
 
-define('DB_HOST',    getenv('DB_HOST') ?: 'localhost');
-define('DB_PORT',    getenv('DB_PORT') ?: '3306');
-define('DB_NAME',    getenv('DB_NAME_KEMISKINAN') ?: 'webgis_kemiskinan');
-define('DB_USER',    getenv('DB_USER') ?: 'root');
-define('DB_PASS',    getenv('DB_PASSWORD') ?: '');
+// Support Railway MySQL plugin env vars (MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLPORT)
+// Prioritas: Railway vars > custom vars > default localhost
+define('DB_HOST',    getenv('MYSQLHOST')     ?: getenv('DB_HOST')     ?: 'localhost');
+define('DB_PORT',    getenv('MYSQLPORT')     ?: getenv('DB_PORT')     ?: '3306');
+define('DB_NAME',    getenv('MYSQLDATABASE') ?: getenv('DB_NAME_KEMISKINAN') ?: 'webgis_kemiskinan');
+define('DB_USER',    getenv('MYSQLUSER')     ?: getenv('DB_USER')     ?: 'root');
+define('DB_PASS',    getenv('MYSQLPASSWORD') ?: getenv('DB_PASSWORD') ?: '');
 define('DB_CHARSET', 'utf8mb4');
 
 define('APP_NAME',    'WebGIS Pengentasan Kemiskinan');
