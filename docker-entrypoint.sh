@@ -25,7 +25,7 @@ sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${APP_PORT}>/g" \
     /etc/apache2/sites-enabled/000-default.conf 2>/dev/null || true
 
 # ============================================================
-# PARSE URL FALLBACK (jika reference vars tidak di-set)
+# PARSE URL FALLBACK
 # ============================================================
 if [ -n "$MYSQL_PRIVATE_URL" ] && [ -z "$MYSQLHOST" ]; then
   echo "[INFO] Parsing MYSQL_PRIVATE_URL..."
@@ -33,7 +33,6 @@ if [ -n "$MYSQL_PRIVATE_URL" ] && [ -z "$MYSQLHOST" ]; then
   export MYSQLPASSWORD=$(echo "$MYSQL_PRIVATE_URL" | sed -E 's|mysql://[^:]+:([^@]+)@.*|\1|')
   export MYSQLHOST=$(echo "$MYSQL_PRIVATE_URL"     | sed -E 's|.*@([^:/]+).*|\1|')
   export MYSQLPORT=$(echo "$MYSQL_PRIVATE_URL"     | sed -E 's|.*@[^:]+:([0-9]+)/.*|\1|')
-  export MYSQLDATABASE=$(echo "$MYSQL_PRIVATE_URL" | sed -E 's|.*/([^?]+)$|\1|')
 fi
 
 if [ -n "$DATABASE_URL" ] && [ -z "$MYSQLHOST" ]; then
@@ -42,7 +41,6 @@ if [ -n "$DATABASE_URL" ] && [ -z "$MYSQLHOST" ]; then
   export MYSQLPASSWORD=$(echo "$DATABASE_URL" | sed -E 's|mysql://[^:]+:([^@]+)@.*|\1|')
   export MYSQLHOST=$(echo "$DATABASE_URL"     | sed -E 's|.*@([^:/]+).*|\1|')
   export MYSQLPORT=$(echo "$DATABASE_URL"     | sed -E 's|.*@[^:]+:([0-9]+)/.*|\1|')
-  export MYSQLDATABASE=$(echo "$DATABASE_URL" | sed -E 's|.*/([^?]+)$|\1|')
 fi
 
 # ============================================================
@@ -53,9 +51,24 @@ if [ -n "$MYSQLHOST" ]; then
   echo "[INFO] Target MySQL: $MYSQLHOST:$MYSQL_PORT (user: $MYSQLUSER)"
 
   # ============================================================
-  # STEP 1: TCP PORT CHECK (bypass auth issues sepenuhnya)
-  # Ini hanya cek apakah port MySQL terbuka, TIDAK perlu login.
-  # Lebih andal daripada mysqladmin ping yang butuh autentikasi.
+  # TULIS CREDENTIALS KE CONFIG FILE
+  # Cara paling aman untuk menangani password dengan karakter
+  # khusus (@, !, #, $, %, dll) tanpa shell escaping issues.
+  # ============================================================
+  MYSQL_CNF=$(mktemp /tmp/mysql-XXXXXX.cnf)
+  chmod 600 "$MYSQL_CNF"
+  cat > "$MYSQL_CNF" << CNFEOF
+[client]
+host=${MYSQLHOST}
+port=${MYSQL_PORT}
+user=${MYSQLUSER}
+password=${MYSQLPASSWORD}
+connect_timeout=10
+CNFEOF
+  echo "[INFO] MySQL config ditulis ke $MYSQL_CNF"
+
+  # ============================================================
+  # STEP 1: TCP PORT CHECK
   # ============================================================
   echo "[INFO] Menunggu port MySQL terbuka..."
   TCP_READY=0
@@ -72,54 +85,70 @@ if [ -n "$MYSQLHOST" ]; then
   done
 
   if [ "$TCP_READY" != "1" ]; then
-    echo "[WARN] Port MySQL tidak terbuka setelah 120 detik. Lanjut tanpa inisialisasi DB."
+    echo "[WARN] Port MySQL tidak terbuka setelah 120 detik."
+    rm -f "$MYSQL_CNF"
   else
-    # ============================================================
-    # STEP 2: TUNGGU SEBENTAR lalu langsung jalankan SQL
-    # Jangan pakai mysqladmin ping (masalah caching_sha2_password).
-    # Langsung coba SQL, jika gagal lanjut saja.
-    # ============================================================
-    echo "[INFO] Port terbuka. Menunggu MySQL fully ready (5 detik)..."
+    echo "[INFO] MySQL port terbuka. Menunggu 5 detik agar MySQL fully ready..."
     sleep 5
 
-    echo "[INFO] Membuat database jika belum ada..."
-    mysql -h "$MYSQLHOST" -P "$MYSQL_PORT" \
-      -u "$MYSQLUSER" --password="$MYSQLPASSWORD" \
-      --connect-timeout=10 \
-      -e "CREATE DATABASE IF NOT EXISTS webgis_kemiskinan CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-          CREATE DATABASE IF NOT EXISTS webgis_spbu CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" \
-      2>/dev/null && echo "[OK] Database dibuat!" || echo "[WARN] Gagal buat database (mungkin sudah ada)"
+    # ============================================================
+    # STEP 2: TEST KONEKSI (tampilkan error nyata)
+    # --get-server-public-key: wajib untuk MySQL 8.0
+    # caching_sha2_password tanpa SSL
+    # ============================================================
+    echo "[INFO] Test koneksi MySQL..."
+    CONN_TEST=$(mysql --defaults-file="$MYSQL_CNF" \
+      --get-server-public-key \
+      -e "SELECT 'OK';" --skip-column-names 2>&1)
+    
+    if echo "$CONN_TEST" | grep -q "OK"; then
+      echo "[OK] Koneksi MySQL berhasil!"
 
-    # Cek tabel webgis_kemiskinan
-    TABLE_COUNT=$(mysql -h "$MYSQLHOST" -P "$MYSQL_PORT" \
-      -u "$MYSQLUSER" --password="$MYSQLPASSWORD" \
-      --connect-timeout=10 --skip-column-names --silent \
-      -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='webgis_kemiskinan';" \
-      2>/dev/null || echo "0")
-    TABLE_COUNT=$(echo "$TABLE_COUNT" | tr -d '[:space:]')
-    if ! echo "$TABLE_COUNT" | grep -qE '^[0-9]+$'; then TABLE_COUNT=0; fi
-    echo "[INFO] Tabel ditemukan di webgis_kemiskinan: $TABLE_COUNT"
+      # CREATE databases
+      echo "[INFO] Membuat database..."
+      mysql --defaults-file="$MYSQL_CNF" --get-server-public-key \
+        -e "CREATE DATABASE IF NOT EXISTS webgis_kemiskinan CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            CREATE DATABASE IF NOT EXISTS webgis_spbu CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>&1 \
+        | grep -v "^$" && echo "[OK] Database siap!" || true
 
-    if [ "$TABLE_COUNT" -lt "3" ]; then
-      echo "[INFO] Mengimpor schema webgis_kemiskinan..."
-      mysql -h "$MYSQLHOST" -P "$MYSQL_PORT" \
-        -u "$MYSQLUSER" --password="$MYSQLPASSWORD" \
-        --connect-timeout=30 \
-        webgis_kemiskinan < /var/www/html/init-db/01-schema.sql \
-        2>/dev/null && echo "[OK] Schema kemiskinan imported!" || echo "[WARN] Import kemiskinan gagal"
+      # Cek tabel
+      TABLE_COUNT=$(mysql --defaults-file="$MYSQL_CNF" --get-server-public-key \
+        --skip-column-names --silent \
+        -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='webgis_kemiskinan';" \
+        2>/dev/null || echo "0")
+      TABLE_COUNT=$(echo "$TABLE_COUNT" | tr -d '[:space:]')
+      if ! echo "$TABLE_COUNT" | grep -qE '^[0-9]+$'; then TABLE_COUNT=0; fi
+      echo "[INFO] Tabel di webgis_kemiskinan: $TABLE_COUNT"
 
-      echo "[INFO] Mengimpor schema webgis_spbu..."
-      mysql -h "$MYSQLHOST" -P "$MYSQL_PORT" \
-        -u "$MYSQLUSER" --password="$MYSQLPASSWORD" \
-        --connect-timeout=30 \
-        webgis_spbu < /var/www/html/init-db/02-schema_webgis_spbu.sql \
-        2>/dev/null && echo "[OK] Schema spbu imported!" || echo "[WARN] Import spbu gagal"
+      if [ "$TABLE_COUNT" -lt "3" ]; then
+        echo "[INFO] Mengimpor schema webgis_kemiskinan..."
+        if mysql --defaults-file="$MYSQL_CNF" --get-server-public-key \
+            webgis_kemiskinan < /var/www/html/init-db/01-schema.sql 2>&1; then
+          echo "[OK] Schema kemiskinan berhasil diimpor!"
+        else
+          echo "[WARN] Import kemiskinan gagal. Cek file init-db/01-schema.sql"
+        fi
+
+        echo "[INFO] Mengimpor schema webgis_spbu..."
+        if mysql --defaults-file="$MYSQL_CNF" --get-server-public-key \
+            webgis_spbu < /var/www/html/init-db/02-schema_webgis_spbu.sql 2>&1; then
+          echo "[OK] Schema spbu berhasil diimpor!"
+        else
+          echo "[WARN] Import spbu gagal. Cek file init-db/02-schema_webgis_spbu.sql"
+        fi
+      else
+        echo "[INFO] Database sudah ada ($TABLE_COUNT tabel), melewati inisialisasi."
+      fi
     else
-      echo "[INFO] Database sudah ada ($TABLE_COUNT tabel), melewati inisialisasi."
+      echo "[ERROR] Koneksi MySQL GAGAL. Error:"
+      echo "$CONN_TEST"
+      echo "[INFO] Cek MYSQLHOST, MYSQLUSER, MYSQLPASSWORD di Railway Variables!"
     fi
+
+    rm -f "$MYSQL_CNF"
   fi
 else
-  echo "[WARN] MYSQLHOST tidak diset. Cek reference variables di Railway!"
+  echo "[WARN] MYSQLHOST tidak diset! Tambahkan reference variables dari MySQL ke WebGIS_Project di Railway."
 fi
 
 echo "=== Menjalankan Apache pada port $APP_PORT ==="
