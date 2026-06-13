@@ -121,7 +121,7 @@ CNFEOF
       if ! echo "$TABLE_COUNT" | grep -qE '^[0-9]+$'; then TABLE_COUNT=0; fi
       echo "[INFO] Tabel di webgis_kemiskinan: $TABLE_COUNT"
 
-      if [ "$TABLE_COUNT" -lt "3" ]; then
+      if [ "$TABLE_COUNT" -lt "13" ]; then
         echo "[INFO] Mengimpor schema webgis_kemiskinan..."
         if mysql --defaults-file="$MYSQL_CNF" \
             webgis_kemiskinan < /var/www/html/init-db/01-schema.sql 2>&1; then
