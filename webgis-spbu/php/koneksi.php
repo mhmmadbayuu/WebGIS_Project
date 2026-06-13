@@ -6,6 +6,17 @@ $port = getenv('MYSQLPORT')     ?: getenv('DB_PORT')      ?: "3306";
 $db   = getenv('MYSQLDATABASE') ?: getenv('DB_NAME_SPBU') ?: "webgis_spbu";
 $user = getenv('MYSQLUSER')     ?: getenv('DB_USER')      ?: "root";
 $pass = getenv('MYSQLPASSWORD') ?: getenv('DB_PASSWORD')  ?: "";
+
+$dbUrl = getenv('DATABASE_URL') ?: getenv('MYSQL_PRIVATE_URL') ?: getenv('MYSQL_URL');
+if ($dbUrl) {
+    $parsed = parse_url($dbUrl);
+    if ($parsed) {
+        $host = $parsed['host'] ?? $host;
+        $port = $parsed['port'] ?? $port;
+        $user = $parsed['user'] ?? $user;
+        $pass = $parsed['pass'] ?? $pass;
+    }
+}
 $charset = "utf8mb4";
 
 // Force IPv4 untuk fix NO_SOCKET di Railway internal network (IPv6)

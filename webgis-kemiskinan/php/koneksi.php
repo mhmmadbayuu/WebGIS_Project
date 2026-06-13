@@ -6,11 +6,29 @@
 
 // Support Railway MySQL plugin env vars (MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLPORT)
 // Juga support MYSQL_PRIVATE_URL yang di-parse oleh docker-entrypoint.sh
-define('DB_HOST',    getenv('MYSQLHOST')     ?: getenv('DB_HOST')     ?: 'localhost');
-define('DB_PORT',    getenv('MYSQLPORT')     ?: getenv('DB_PORT')     ?: '3306');
-define('DB_NAME',    getenv('MYSQLDATABASE') ?: getenv('DB_NAME_KEMISKINAN') ?: 'webgis_kemiskinan');
-define('DB_USER',    getenv('MYSQLUSER')     ?: getenv('DB_USER')     ?: 'root');
-define('DB_PASS',    getenv('MYSQLPASSWORD') ?: getenv('DB_PASSWORD') ?: '');
+$dbHost = getenv('MYSQLHOST') ?: getenv('DB_HOST') ?: 'localhost';
+$dbPort = getenv('MYSQLPORT') ?: getenv('DB_PORT') ?: '3306';
+$dbName = getenv('MYSQLDATABASE') ?: getenv('DB_NAME_KEMISKINAN') ?: 'webgis_kemiskinan';
+$dbUser = getenv('MYSQLUSER') ?: getenv('DB_USER') ?: 'root';
+$dbPass = getenv('MYSQLPASSWORD') ?: getenv('DB_PASSWORD') ?: '';
+
+$dbUrl = getenv('DATABASE_URL') ?: getenv('MYSQL_PRIVATE_URL') ?: getenv('MYSQL_URL');
+if ($dbUrl) {
+    $parsed = parse_url($dbUrl);
+    if ($parsed) {
+        $dbHost = $parsed['host'] ?? $dbHost;
+        $dbPort = $parsed['port'] ?? $dbPort;
+        $dbUser = $parsed['user'] ?? $dbUser;
+        $dbPass = $parsed['pass'] ?? $dbPass;
+        $dbName = isset($parsed['path']) ? ltrim($parsed['path'], '/') : $dbName;
+    }
+}
+
+define('DB_HOST',    $dbHost);
+define('DB_PORT',    $dbPort);
+define('DB_NAME',    $dbName);
+define('DB_USER',    $dbUser);
+define('DB_PASS',    $dbPass);
 define('DB_CHARSET', 'utf8mb4');
 
 
