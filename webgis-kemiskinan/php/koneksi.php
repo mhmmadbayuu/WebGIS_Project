@@ -36,7 +36,16 @@ foreach ([UPLOAD_BUKTI, UPLOAD_LAPORAN, UPLOAD_FOTO] as $dir) {
 // Koneksi PDO
 // ============================================================
 
-$dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+// Force IPv4 untuk fix NO_SOCKET di Railway internal network (IPv6)
+// gethostbyname() selalu return IPv4 address
+$dbHostResolved = DB_HOST;
+if (filter_var(DB_HOST, FILTER_VALIDATE_IP) === false) {
+    $resolved = gethostbyname(DB_HOST);
+    if ($resolved !== DB_HOST) {
+        $dbHostResolved = $resolved; // Gunakan IPv4 yang sudah di-resolve
+    }
+}
+$dsn = "mysql:host=" . $dbHostResolved . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
 
 $pdoOptions = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,

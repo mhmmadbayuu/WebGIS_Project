@@ -8,6 +8,13 @@ $user = getenv('MYSQLUSER')     ?: getenv('DB_USER')      ?: "root";
 $pass = getenv('MYSQLPASSWORD') ?: getenv('DB_PASSWORD')  ?: "";
 $charset = "utf8mb4";
 
+// Force IPv4 untuk fix NO_SOCKET di Railway internal network (IPv6)
+if (filter_var($host, FILTER_VALIDATE_IP) === false) {
+    $resolved = gethostbyname($host);
+    if ($resolved !== $host) {
+        $host = $resolved;
+    }
+}
 $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=$charset";
 
 $options = [

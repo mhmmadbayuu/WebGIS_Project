@@ -52,20 +52,33 @@ fi
 # INISIALISASI DATABASE
 # ============================================================
 if [ -n "$MYSQLHOST" ]; then
+  # ============================================================
+  # FORCE IPv4 - Fix NO_SOCKET di Railway Internal Network
+  # Railway menggunakan IPv6 (fd12:...) untuk internal networking,
+  # tapi MySQL mungkin hanya listen di IPv4. Resolve dulu ke IPv4.
+  # ============================================================
+  echo "[INFO] Resolving $MYSQLHOST ke IPv4..."
+  MYSQLHOST_V4=$(getent ahostsv4 "$MYSQLHOST" 2>/dev/null | awk 'NR==1{print $1}')
+  if [ -n "$MYSQLHOST_V4" ] && [ "$MYSQLHOST_V4" != "$MYSQLHOST" ]; then
+    echo "[INFO] Resolved: $MYSQLHOST → $MYSQLHOST_V4 (IPv4)"
+    export MYSQLHOST="$MYSQLHOST_V4"
+  else
+    echo "[WARN] IPv4 resolution gagal, tetap pakai: $MYSQLHOST"
+  fi
+
   echo "[INFO] Menunggu MySQL siap di $MYSQLHOST:${MYSQLPORT:-3306} (user: $MYSQLUSER)..."
 
   READY=0
   for i in $(seq 1 60); do
-    # Gunakan --password= agar aman dengan karakter khusus
     if mysqladmin ping -h "$MYSQLHOST" -P "${MYSQLPORT:-3306}" \
-        -u "$MYSQLUSER" --password="$MYSQLPASSWORD" --silent 2>/dev/null; then
+        -u "$MYSQLUSER" --password="$MYSQLPASSWORD" \
+        --connect-timeout=5 --silent 2>/dev/null; then
       echo "[OK] MySQL siap setelah $i percobaan!"
       READY=1
       break
     fi
-    # Setiap 10 percobaan, tampilkan status
     if [ $((i % 10)) -eq 0 ]; then
-      echo "[WAIT] Percobaan $i/60 ($(($i * 2)) detik)..."
+      echo "[WAIT] Percobaan $i/60 ($((i * 2)) detik)..."
     fi
     sleep 2
   done
