@@ -6,24 +6,21 @@ RUN apt-get update && apt-get install -y default-mysql-client \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
-# FIX APACHE MPM CONFLICT - GLOB PATTERN
-# Hapus SEMUA file mpm_* di mods-enabled dengan glob agar
-# tidak ada satupun MPM yang tertinggal (termasuk yang
-# di-enable ulang oleh apt-get selama instalasi).
-# Setelah bersih, aktifkan hanya mpm_prefork (wajib untuk mod_php).
+# FIX APACHE MPM CONFLICT (build-time)
+# Hapus SEMUA file mpm_* dengan glob pattern lalu enable
+# hanya mpm_prefork yang kompatibel dengan mod_php.
+# Fix runtime juga ada di docker-entrypoint.sh sebagai
+# lapisan kedua untuk bypass Docker layer cache.
 # ============================================================
 RUN rm -f /etc/apache2/mods-enabled/mpm_*.conf \
            /etc/apache2/mods-enabled/mpm_*.load \
-    && a2enmod mpm_prefork rewrite
+    && a2enmod mpm_prefork rewrite \
+    && echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 # Copy semua file project
 COPY . /var/www/html/
 
-# ============================================================
-# FIX CRLF - strip Windows line endings dari entrypoint
-# Dilakukan SETELAH COPY agar berfungsi terlepas dari
-# bagaimana file di-commit/diedit di Windows.
-# ============================================================
+# Strip CRLF dari entrypoint + set executable
 RUN sed -i 's/\r$//' /var/www/html/docker-entrypoint.sh \
     && chmod +x /var/www/html/docker-entrypoint.sh
 
@@ -36,7 +33,7 @@ RUN mkdir -p /var/www/html/webgis-kemiskinan/uploads/bukti \
     && chown -R www-data:www-data /var/www/html/webgis-spbu/uploads \
     && chown -R www-data:www-data /var/www/html
 
-# Expose port default (Railway akan override via $PORT)
+# Railway assign port dinamis via $PORT (default 80 jika tidak ada)
 EXPOSE 80
 
 CMD ["/bin/bash", "/var/www/html/docker-entrypoint.sh"]
